@@ -56,7 +56,7 @@ export default function RecordMatch() {
 
     try {
       // For now, we'll send to a matches endpoint (to be created in backend)
-      const response = await fetch('http://localhost:3001/api/matches', {
+      const response = await fetch('/api/matches', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
