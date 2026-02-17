@@ -56,4 +56,4 @@ A modern web application for managing pickleball tournaments, rankings, and memb
 
 ---
 
-Built with ❤️ for the Tupi Smash Pickleball Club community
+Built with ❤️ for the Tupi Smash Pickleball Club community by 0xJape
