@@ -1,0 +1,280 @@
+const express = require('express')
+const router = express.Router()
+const supabase = require('../config/supabase')
+
+// Helper function to calculate winner based on sets
+function calculateWinner(set1_team1, set1_team2, set2_team1, set2_team2, set3_team1, set3_team2, player1_id, player2_id) {
+  let team1Sets = 0
+  let team2Sets = 0
+  
+  // Count sets won by each team
+  if (set1_team1 > set1_team2) team1Sets++
+  else if (set1_team2 > set1_team1) team2Sets++
+  
+  if (set2_team1 > set2_team2) team1Sets++
+  else if (set2_team2 > set2_team1) team2Sets++
+  
+  if (set3_team1 !== null && set3_team2 !== null) {
+    if (set3_team1 > set3_team2) team1Sets++
+    else if (set3_team2 > set3_team1) team2Sets++
+  }
+  
+  // Return winner_id and sets won
+  return {
+    winner_id: team1Sets > team2Sets ? player1_id : (team2Sets > team1Sets ? player2_id : null),
+    team1_sets: team1Sets,
+    team2_sets: team2Sets
+  }
+}
+
+// Record a new match (POST /api/matches)
+router.post('/', async (req, res) => {
+  try {
+    const { 
+      tournament_id, 
+      match_type = 'Singles',
+      player1_id, 
+      team1_partner_id,
+      player2_id, 
+      team2_partner_id,
+      set1_team1_score,
+      set1_team2_score,
+      set2_team1_score,
+      set2_team2_score,
+      set3_team1_score,
+      set3_team2_score,
+      round,
+      match_date 
+    } = req.body
+
+    // Calculate winner based on sets
+    const { winner_id, team1_sets, team2_sets } = calculateWinner(
+      parseInt(set1_team1_score || 0),
+      parseInt(set1_team2_score || 0),
+      parseInt(set2_team1_score || 0),
+      parseInt(set2_team2_score || 0),
+      set3_team1_score ? parseInt(set3_team1_score) : null,
+      set3_team2_score ? parseInt(set3_team2_score) : null,
+      player1_id,
+      player2_id
+    )
+
+    // Insert match record
+    const matchData = {
+      tournament_id,
+      match_type,
+      player1_id,
+      player2_id,
+      set1_team1_score: parseInt(set1_team1_score || 0),
+      set1_team2_score: parseInt(set1_team2_score || 0),
+      set2_team1_score: parseInt(set2_team1_score || 0),
+      set2_team2_score: parseInt(set2_team2_score || 0),
+      winner_id,
+      match_date,
+      status: 'Finished',
+      ...(round && { round })
+    }
+
+    // Add partner IDs if doubles match
+    if (match_type === 'Doubles') {
+      if (team1_partner_id) matchData.team1_partner_id = team1_partner_id
+      if (team2_partner_id) matchData.team2_partner_id = team2_partner_id
+    }
+
+    // Add set 3 scores if provided
+    if (set3_team1_score !== undefined && set3_team1_score !== null && set3_team1_score !== '') {
+      matchData.set3_team1_score = parseInt(set3_team1_score)
+    }
+    if (set3_team2_score !== undefined && set3_team2_score !== null && set3_team2_score !== '') {
+      matchData.set3_team2_score = parseInt(set3_team2_score)
+    }
+
+    const { data: match, error: matchError } = await supabase
+      .from('matches')
+      .insert([matchData])
+      .select()
+
+    if (matchError) throw matchError
+
+    // Note: Stats (wins/losses/points) are NOT updated for standalone matches
+    // Only tournament matches count toward rankings
+    // This ensures rankings reflect tournament performance only
+
+    res.json({ 
+      success: true, 
+      match: match[0],
+      message: 'Match recorded successfully' 
+    })
+  } catch (error) {
+    console.error('Error creating match:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Get all matches (GET /api/matches)
+router.get('/', async (req, res) => {
+  try {
+    // Fetch matches first
+    const { data: matches, error: matchesError } = await supabase
+      .from('matches')
+      .select('*')
+      .order('match_date', { ascending: false })
+
+    if (matchesError) throw matchesError
+
+    // Fetch related data separately to avoid nested query issues
+    const matchesWithDetails = await Promise.all(matches.map(async (match) => {
+      const [player1Res, player2Res, winnerRes, team1PartnerRes, team2PartnerRes, tournamentRes] = await Promise.all([
+        match.player1_id ? supabase.from('members').select('id, full_name, profile_photo').eq('id', match.player1_id).single() : Promise.resolve({ data: null }),
+        match.player2_id ? supabase.from('members').select('id, full_name, profile_photo').eq('id', match.player2_id).single() : Promise.resolve({ data: null }),
+        match.winner_id ? supabase.from('members').select('id, full_name, profile_photo').eq('id', match.winner_id).single() : Promise.resolve({ data: null }),
+        match.team1_partner_id ? supabase.from('members').select('id, full_name, profile_photo').eq('id', match.team1_partner_id).single() : Promise.resolve({ data: null }),
+        match.team2_partner_id ? supabase.from('members').select('id, full_name, profile_photo').eq('id', match.team2_partner_id).single() : Promise.resolve({ data: null }),
+        match.tournament_id ? supabase.from('tournaments').select('id, name').eq('id', match.tournament_id).single() : Promise.resolve({ data: null })
+      ])
+
+      return {
+        ...match,
+        player1: player1Res.data,
+        player2: player2Res.data,
+        winner: winnerRes.data,
+        team1_partner: team1PartnerRes.data,
+        team2_partner: team2PartnerRes.data,
+        tournament: tournamentRes.data
+      }
+    }))
+
+    res.json(matchesWithDetails)
+  } catch (error) {
+    console.error('Error fetching matches:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Get match by ID (GET /api/matches/:id)
+router.get('/:id', async (req, res) => {
+  try {
+    const { data: match, error: matchError } = await supabase
+      .from('matches')
+      .select('*')
+      .eq('id', req.params.id)
+      .single()
+
+    if (matchError) throw matchError
+
+    // Fetch related data
+    const [player1Res, player2Res, winnerRes, team1PartnerRes, team2PartnerRes] = await Promise.all([
+      match.player1_id ? supabase.from('members').select('id, full_name, profile_photo').eq('id', match.player1_id).single() : Promise.resolve({ data: null }),
+      match.player2_id ? supabase.from('members').select('id, full_name, profile_photo').eq('id', match.player2_id).single() : Promise.resolve({ data: null }),
+      match.winner_id ? supabase.from('members').select('id, full_name, profile_photo').eq('id', match.winner_id).single() : Promise.resolve({ data: null }),
+      match.team1_partner_id ? supabase.from('members').select('id, full_name, profile_photo').eq('id', match.team1_partner_id).single() : Promise.resolve({ data: null }),
+      match.team2_partner_id ? supabase.from('members').select('id, full_name, profile_photo').eq('id', match.team2_partner_id).single() : Promise.resolve({ data: null })
+    ])
+
+    const matchWithDetails = {
+      ...match,
+      player1: player1Res.data,
+      player2: player2Res.data,
+      winner: winnerRes.data,
+      team1_partner: team1PartnerRes.data,
+      team2_partner: team2PartnerRes.data
+    }
+
+    res.json(matchWithDetails)
+  } catch (error) {
+    console.error('Error fetching match:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Update match scores (PUT /api/matches/:id)
+router.put('/:id', async (req, res) => {
+  try {
+    const { 
+      set1_team1_score,
+      set1_team2_score,
+      set2_team1_score,
+      set2_team2_score,
+      set3_team1_score,
+      set3_team2_score,
+      status, 
+      round 
+    } = req.body
+
+    // Get match details
+    const { data: match, error: matchError } = await supabase
+      .from('matches')
+      .select('*')
+      .eq('id', req.params.id)
+      .single()
+
+    if (matchError) throw matchError
+
+    const updateData = {}
+
+    // If set scores provided, use them
+    if (set1_team1_score !== undefined) {
+      updateData.set1_team1_score = parseInt(set1_team1_score) || 0
+      updateData.set1_team2_score = parseInt(set1_team2_score) || 0
+      updateData.set2_team1_score = parseInt(set2_team1_score) || 0
+      updateData.set2_team2_score = parseInt(set2_team2_score) || 0
+      
+      // Handle optional set 3
+      if (set3_team1_score !== undefined && set3_team1_score !== null && set3_team1_score !== '') {
+        updateData.set3_team1_score = parseInt(set3_team1_score)
+      } else {
+        updateData.set3_team1_score = null
+      }
+      
+      if (set3_team2_score !== undefined && set3_team2_score !== null && set3_team2_score !== '') {
+        updateData.set3_team2_score = parseInt(set3_team2_score)
+      } else {
+        updateData.set3_team2_score = null
+      }
+
+      // Calculate winner from sets
+      const { winner_id, team1_sets, team2_sets } = calculateWinner(
+        updateData.set1_team1_score,
+        updateData.set1_team2_score,
+        updateData.set2_team1_score,
+        updateData.set2_team2_score,
+        updateData.set3_team1_score,
+        updateData.set3_team2_score,
+        match.player1_id,
+        match.player2_id
+      )
+      
+      updateData.winner_id = winner_id
+    }
+
+    if (status !== undefined) updateData.status = status
+    if (round !== undefined) {
+      updateData.round = round || null
+    }
+
+    console.log('Updating match with data:', updateData)
+
+    // Update match
+    const { data, error } = await supabase
+      .from('matches')
+      .update(updateData)
+      .eq('id', req.params.id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Supabase update error:', error)
+      throw error
+    }
+
+    // Note: Point adjustments when editing existing match scores are not currently supported
+    // to avoid complex reversal logic. Points are awarded only when matches are initially created.
+
+    res.json(data)
+  } catch (error) {
+    console.error('Error updating match:', error)
+    res.status(400).json({ error: error.message })
+  }
+})
+
+module.exports = router
