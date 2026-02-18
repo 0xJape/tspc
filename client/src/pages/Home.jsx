@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Users, User, Trophy, Calendar, Award, ArrowRight, ChevronRight, Plus } from 'lucide-react'
+import { Users, User, Trophy, Calendar, Award, ArrowRight, ChevronRight } from 'lucide-react'
 import { membersAPI, tournamentsAPI, scheduleAPI, matchesAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
@@ -265,19 +265,6 @@ export default function Home() {
           </div>
         </div>
       </footer>
-
-      {/* Floating Action Button - Admin Only */}
-      {isAdmin && (
-        <Link
-          to="/matches/record"
-          className="fixed bottom-8 right-8 bg-baseline-green text-white p-4 rounded-full shadow-lg hover:bg-baseline-green-dark transition-all hover:scale-110 z-50 flex items-center justify-center group"
-        >
-          <Plus className="w-6 h-6" />
-          <span className="absolute right-full mr-3 px-3 py-1.5 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
-            Record Match
-          </span>
-        </Link>
-      )}
     </div>
   )
 }
