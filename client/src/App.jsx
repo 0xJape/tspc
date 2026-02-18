@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import Navbar from './components/Navbar'
 import ProtectedRoute from './components/ProtectedRoute'
+import LoadingScreen from './components/LoadingScreen'
 import Home from './pages/Home'
 import Members from './pages/Members'
 import Rankings from './pages/Rankings'
@@ -16,9 +18,30 @@ import TournamentForm from './pages/TournamentForm'
 import RecordMatch from './pages/RecordMatch'
 
 function App() {
+  const [showLoading, setShowLoading] = useState(true)
+  const [hasShownLoading, setHasShownLoading] = useState(false)
+
+  useEffect(() => {
+    // Check if loading screen has been shown this session
+    const loadingShown = sessionStorage.getItem('loadingShown')
+    if (loadingShown) {
+      setShowLoading(false)
+      setHasShownLoading(true)
+    }
+  }, [])
+
+  const handleLoadingComplete = () => {
+    setShowLoading(false)
+    setHasShownLoading(true)
+    sessionStorage.setItem('loadingShown', 'true')
+  }
+
   return (
     <Router>
       <AuthProvider>
+        {showLoading && !hasShownLoading && (
+          <LoadingScreen onComplete={handleLoadingComplete} />
+        )}
         <div className="min-h-screen bg-gray-50">
           <Navbar />
           <Routes>
