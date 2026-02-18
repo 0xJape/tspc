@@ -7,11 +7,16 @@ if (!supabaseUrl || !supabaseKey) {
   console.error('❌ MISSING SUPABASE CREDENTIALS')
   console.error('SUPABASE_URL:', supabaseUrl ? 'SET' : 'MISSING')
   console.error('SUPABASE_SERVICE_KEY:', supabaseKey ? 'SET' : 'MISSING')
-  throw new Error('Supabase credentials not configured. Add SUPABASE_URL and SUPABASE_SERVICE_KEY to Vercel environment variables.')
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey)
+const supabase = supabaseUrl && supabaseKey 
+  ? createClient(supabaseUrl, supabaseKey)
+  : null
 
-console.log('✅ Supabase client initialized successfully')
+if (supabase) {
+  console.log('✅ Supabase client initialized successfully')
+} else {
+  console.error('⚠️ Supabase client is NULL - API calls will fail')
+}
 
 module.exports = supabase

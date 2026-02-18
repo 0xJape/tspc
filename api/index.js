@@ -1,7 +1,6 @@
 // Vercel Serverless Function Handler
 const express = require('express');
 const cors = require('cors');
-const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 
@@ -13,23 +12,7 @@ app.use(cors({
 
 app.use(express.json());
 
-// Initialize Supabase
-let supabase;
-try {
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
-    console.error('❌ Missing Supabase credentials');
-  } else {
-    supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_KEY
-    );
-    console.log('✅ Supabase connected');
-  }
-} catch (error) {
-  console.error('❌ Supabase connection failed:', error);
-}
-
-// Import routes
+// Import routes (they will use server/config/supabase.js)
 const authRoutes = require('../server/routes/auth');
 const membersRoutes = require('../server/routes/members');
 const rankingsRoutes = require('../server/routes/rankings');
@@ -52,7 +35,6 @@ app.get('/api', (req, res) => {
     status: 'running',
     environment: process.env.NODE_ENV || 'development',
     supabase: {
-      configured: !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY),
       url: process.env.SUPABASE_URL ? 'SET' : 'MISSING',
       key: process.env.SUPABASE_SERVICE_KEY ? 'SET' : 'MISSING'
     }
