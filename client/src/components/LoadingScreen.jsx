@@ -51,7 +51,7 @@ export default function LoadingScreen({ onComplete }) {
         >
           <div className="flex flex-col items-center">
             <img 
-              src="/tspc.svg" 
+              src="/tspc.png" 
               alt="TSPC Logo" 
               className="w-32 h-32 md:w-40 md:h-40 animate-pulse-slow"
             />

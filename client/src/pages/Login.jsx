@@ -37,7 +37,7 @@ export default function Login() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mx-auto mb-4">
-            <img src="/tspc.svg" alt="TSPC Logo" className="w-16 h-16" />
+            <img src="/tspc.png" alt="TSPC Logo" className="w-16 h-16" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
           <p className="text-gray-500 mt-2">Sign in to your <span className="club-name text-gray-700">Tupi Smash Pickleball Club</span> account</p>

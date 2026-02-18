@@ -101,7 +101,7 @@ export default function Home() {
             {/* Hero Illustration */}
             <div className="w-full max-w-md">
               <div className="relative">
-                <img src="/tspc.svg" alt="TSPC Logo" className="w-full h-72 object-contain border-2 border-gray-100 rounded-3xl shadow-sm p-8 bg-white" />
+                <img src="/tspc.png" alt="TSPC Logo" className="w-full h-72 object-contain border-2 border-gray-100 rounded-3xl shadow-sm p-8 bg-white" />
               </div>
             </div>
           </div>

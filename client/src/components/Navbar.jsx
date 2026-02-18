@@ -29,7 +29,7 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <img src="/tspc.svg" alt="TSPC Logo" className="w-15 h-15" />
+            <img src="/tspc.png" alt="TSPC Logo" className="w-15 h-15" />
           </Link>
 
           {/* Desktop Navigation */}
