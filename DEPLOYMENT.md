@@ -23,15 +23,17 @@
 
 ### 3. Configure Project Settings
 
-**Framework Preset:** Other (not Vite!)
+**Framework Preset:** Vite
 
-**Root Directory:** `.` or leave empty ⬅️ **IMPORTANT - DO NOT set to "client"**
+**Root Directory:** `client` ⬅️ **CRITICAL - Set this to "client"**
 
-**Build Command:** (leave as auto-detected, will use vercel.json)
+**Build Command:** Leave default (auto-detect)
 
-**Output Directory:** (leave as auto-detected, will use vercel.json)
+**Output Directory:** Leave default (auto-detect)  
 
-**Install Command:** (leave as auto-detected, will use vercel.json)
+**Install Command:** Leave default (auto-detect)
+
+> **Why this works:** Vercel will build the frontend from the `client` folder, but STILL detect and deploy the `/api` folder for serverless functions because it's at the project root level.
 
 ### 4. Add Environment Variables
 
