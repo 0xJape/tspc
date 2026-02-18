@@ -16,8 +16,8 @@ const demoSchedule = [
 const statusFilters = ['All', 'Upcoming', 'Ongoing', 'Completed']
 
 export default function Schedule() {
-  const [events, setEvents] = useState(demoSchedule)
-  const [filtered, setFiltered] = useState(demoSchedule)
+  const [events, setEvents] = useState([])
+  const [filtered, setFiltered] = useState([])
   const [statusFilter, setStatusFilter] = useState('Upcoming')
   const [loading, setLoading] = useState(true)
 
@@ -25,11 +25,12 @@ export default function Schedule() {
     const fetchSchedule = async () => {
       try {
         const res = await scheduleAPI.getAll()
-        if (res.data && res.data.length > 0) {
-          setEvents(res.data)
-        }
-      } catch {
-        // Use demo data
+        setEvents(res.data || [])
+        setFiltered(res.data || [])
+      } catch (error) {
+        console.error('Failed to fetch schedule:', error)
+        setEvents([])
+        setFiltered([])
       } finally {
         setLoading(false)
       }

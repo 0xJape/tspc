@@ -20,8 +20,8 @@ const demoRecentMatches = [
 
 export default function Home() {
   const { isAdmin } = useAuth()
-  const [stats, setStats] = useState(demoStats)
-  const [recentMatches, setRecentMatches] = useState(demoRecentMatches)
+  const [stats, setStats] = useState({ members: 0, topPlayer: 'N/A', upcomingMatches: 0, tournaments: 0 })
+  const [recentMatches, setRecentMatches] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -33,8 +33,9 @@ export default function Home() {
           matchesAPI.getAll(),
         ])
         
-        const members = membersRes.data
-        const tournaments = tournamentsRes.data
+        const members = membersRes.data || []
+        const tournaments = tournamentsRes.data || []
+        const matches = matchesRes.data || []
         const topPlayer = members[0]?.full_name || 'N/A'
         const upcoming = tournaments.filter(t => t.status === 'Upcoming').length
 
@@ -46,14 +47,14 @@ export default function Home() {
         })
 
         // Get 5 most recent finished matches
-        const finishedMatches = matchesRes.data
+        const finishedMatches = matches
           .filter(m => m.status === 'Finished')
           .sort((a, b) => new Date(b.match_date) - new Date(a.match_date))
           .slice(0, 5)
         
         setRecentMatches(finishedMatches)
-      } catch {
-        // Use demo data if API fails
+      } catch (error) {
+        console.error('Failed to fetch home data:', error)
       } finally {
         setLoading(false)
       }

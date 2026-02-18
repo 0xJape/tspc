@@ -68,11 +68,10 @@ export default function Tournaments() {
     const fetchTournaments = async () => {
       try {
         const res = await tournamentsAPI.getAll()
-        setTournaments(res.data || demoTournaments)
+        setTournaments(res.data || [])
       } catch (error) {
         console.error('Failed to fetch tournaments:', error)
-        // Use demo data on error
-        setTournaments(demoTournaments)
+        setTournaments([])
       } finally {
         setLoading(false)
       }

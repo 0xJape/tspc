@@ -19,8 +19,8 @@ const skillFilters = ['All', 'Beginner', 'Intermediate', 'Advanced']
 
 export default function Members() {
   const { isAdmin } = useAuth()
-  const [members, setMembers] = useState(demoMembers)
-  const [filtered, setFiltered] = useState(demoMembers)
+  const [members, setMembers] = useState([])
+  const [filtered, setFiltered] = useState([])
   const [search, setSearch] = useState('')
   const [skillFilter, setSkillFilter] = useState('All')
   const [loading, setLoading] = useState(true)
@@ -29,12 +29,12 @@ export default function Members() {
     const fetchMembers = async () => {
       try {
         const res = await membersAPI.getAll()
-        if (res.data && res.data.length > 0) {
-          setMembers(res.data)
-          setFiltered(res.data)
-        }
-      } catch {
-        // Use demo data
+        setMembers(res.data || [])
+        setFiltered(res.data || [])
+      } catch (error) {
+        console.error('Failed to fetch members:', error)
+        setMembers([])
+        setFiltered([])
       } finally {
         setLoading(false)
       }

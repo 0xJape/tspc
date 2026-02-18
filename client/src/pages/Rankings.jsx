@@ -18,7 +18,7 @@ const demoPlayers = [
 const genderFilters = ['All', 'Male', 'Female']
 
 export default function Rankings() {
-  const [players, setPlayers] = useState(demoPlayers)
+  const [players, setPlayers] = useState([])
   const [tournaments, setTournaments] = useState([])
   const [tournamentFilter, setTournamentFilter] = useState('All')
   const [genderFilter, setGenderFilter] = useState('All')
