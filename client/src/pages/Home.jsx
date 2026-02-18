@@ -22,6 +22,7 @@ export default function Home() {
   const { isAdmin } = useAuth()
   const [stats, setStats] = useState({ members: 0, topPlayer: 'N/A', upcomingMatches: 0, tournaments: 0 })
   const [recentMatches, setRecentMatches] = useState([])
+  const [top3Players, setTop3Players] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -45,6 +46,12 @@ export default function Home() {
           upcomingMatches: upcoming,
           tournaments: tournaments.length,
         })
+
+        // Get top 3 players sorted by points
+        const top3 = members
+          .sort((a, b) => (b.points || 0) - (a.points || 0))
+          .slice(0, 3)
+        setTop3Players(top3)
 
         // Get 5 most recent finished matches
         const finishedMatches = matches
@@ -141,6 +148,98 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Top 3 Players Podium */}
+      {top3Players.length === 3 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-16">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
+              Top <span className="text-baseline-green">Champions</span>
+            </h2>
+            <p className="text-xs sm:text-sm text-gray-500 mt-2">
+              As of {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+            </p>
+          </div>
+          <div className="flex items-end justify-center gap-2 sm:gap-4 md:gap-8">
+            {/* 2nd Place */}
+            <div className="flex flex-col items-center">
+              <div className="relative mb-2 sm:mb-4">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full border-2 sm:border-4 border-gray-300 overflow-hidden bg-gray-100">
+                  {top3Players[1]?.profile_photo ? (
+                    <img src={top3Players[1].profile_photo} alt={top3Players[1]?.full_name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <User className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+                <div className="absolute -bottom-1 sm:-bottom-2 left-1/2 transform -translate-x-1/2 w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-gray-300 rounded-full flex items-center justify-center border-2 sm:border-4 border-white shadow-lg">
+                  <span className="text-white font-bold text-sm sm:text-base md:text-lg">2</span>
+                </div>
+              </div>
+              <div className="bg-gradient-to-b from-gray-200 to-gray-300 rounded-t-xl sm:rounded-t-2xl px-3 py-3 sm:px-6 sm:py-5 md:px-8 md:py-6 w-24 sm:w-32 md:w-40 text-center shadow-lg">
+                <h3 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm truncate">{top3Players[1]?.full_name}</h3>
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-700">{top3Players[1]?.points || 0}</p>
+                <p className="text-xs text-gray-600">Points</p>
+              </div>
+              <div className="h-20 sm:h-28 md:h-32 bg-gradient-to-b from-gray-300 to-gray-400 w-24 sm:w-32 md:w-40 rounded-b-lg"></div>
+            </div>
+
+            {/* 1st Place */}
+            <div className="flex flex-col items-center -mt-4 sm:-mt-6 md:-mt-8">
+              <div className="relative mb-2 sm:mb-4">
+                <div className="w-20 h-20 sm:w-26 sm:h-26 md:w-32 md:h-32 rounded-full border-2 sm:border-4 border-yellow-400 overflow-hidden bg-yellow-50 shadow-xl">
+                  {top3Players[0]?.profile_photo ? (
+                    <img src={top3Players[0].profile_photo} alt={top3Players[0]?.full_name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <User className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 text-yellow-600" />
+                    </div>
+                  )}
+                </div>
+                <div className="absolute -bottom-1 sm:-bottom-2 left-1/2 transform -translate-x-1/2 w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-br from-yellow-300 to-yellow-500 rounded-full flex items-center justify-center border-2 sm:border-4 border-white shadow-xl">
+                  <Trophy className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" />
+                </div>
+              </div>
+              <div className="bg-gradient-to-b from-yellow-300 to-yellow-400 rounded-t-xl sm:rounded-t-2xl px-4 py-3 sm:px-6 sm:py-5 md:px-8 md:py-6 w-28 sm:w-36 md:w-48 text-center shadow-xl">
+                <h3 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm md:text-base truncate">{top3Players[0]?.full_name}</h3>
+                <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">{top3Players[0]?.points || 0}</p>
+                <p className="text-xs text-gray-700">Points</p>
+              </div>
+              <div className="h-28 sm:h-40 md:h-48 bg-gradient-to-b from-yellow-400 to-yellow-500 w-28 sm:w-36 md:w-48 rounded-b-lg"></div>
+            </div>
+
+            {/* 3rd Place */}
+            <div className="flex flex-col items-center">
+              <div className="relative mb-2 sm:mb-4">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full border-2 sm:border-4 border-orange-400 overflow-hidden bg-orange-50">
+                  {top3Players[2]?.profile_photo ? (
+                    <img src={top3Players[2].profile_photo} alt={top3Players[2]?.full_name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <User className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-orange-400" />
+                    </div>
+                  )}
+                </div>
+                <div className="absolute -bottom-1 sm:-bottom-2 left-1/2 transform -translate-x-1/2 w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-orange-400 rounded-full flex items-center justify-center border-2 sm:border-4 border-white shadow-lg">
+                  <span className="text-white font-bold text-sm sm:text-base md:text-lg">3</span>
+                </div>
+              </div>
+              <div className="bg-gradient-to-b from-orange-300 to-orange-400 rounded-t-xl sm:rounded-t-2xl px-3 py-3 sm:px-6 sm:py-5 md:px-8 md:py-6 w-24 sm:w-32 md:w-40 text-center shadow-lg">
+                <h3 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm truncate">{top3Players[2]?.full_name}</h3>
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-700">{top3Players[2]?.points || 0}</p>
+                <p className="text-xs text-gray-600">Points</p>
+              </div>
+              <div className="h-16 sm:h-20 md:h-24 bg-gradient-to-b from-orange-400 to-orange-500 w-24 sm:w-32 md:w-40 rounded-b-lg"></div>
+            </div>
+          </div>
+          <div className="text-center mt-6 sm:mt-8">
+            <Link to="/rankings" className="inline-flex items-center text-baseline-green hover:text-baseline-green-dark font-medium text-sm sm:text-base">
+              View Full Rankings <ChevronRight className="w-4 h-4 ml-1" />
+            </Link>
+          </div>
+        </section>
+      )}
 
       {/* Recent Matches Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
