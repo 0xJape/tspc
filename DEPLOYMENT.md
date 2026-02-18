@@ -23,15 +23,15 @@
 
 ### 3. Configure Project Settings
 
-**Framework Preset:** Vite
+**Framework Preset:** Other (not Vite!)
 
-**Root Directory:** `client` ⬅️ **IMPORTANT**
+**Root Directory:** `.` or leave empty ⬅️ **IMPORTANT - DO NOT set to "client"**
 
-**Build Command:** `npm run build` (default is fine)
+**Build Command:** (leave as auto-detected, will use vercel.json)
 
-**Output Directory:** `dist` (default is fine)
+**Output Directory:** (leave as auto-detected, will use vercel.json)
 
-**Install Command:** `npm install` (default is fine)
+**Install Command:** (leave as auto-detected, will use vercel.json)
 
 ### 4. Add Environment Variables
 
@@ -98,8 +98,9 @@ ALTER TABLE tournament_participants DISABLE ROW LEVEL SECURITY;
 4. Verify environment variables in Vercel Settings → Environment Variables
 
 ### Build failing?
-1. Make sure **Root Directory is set to `client`** in project settings
-2. Redeploy after changing settings
+1. Make sure **Root Directory is NOT set** (should be empty or `.`)
+2. Framework should be "Other" not "Vite"
+3. Redeploy after changing settings
 
 ### API not working?
 1. Check Vercel Functions logs in deployment details
