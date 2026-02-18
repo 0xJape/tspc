@@ -4,15 +4,11 @@ const cors = require('cors');
 
 const app = express();
 
-// CORS Configuration
-app.use(cors({
-  origin: '*',
-  credentials: true
-}));
-
+// CORS - allow all origins
+app.use(cors());
 app.use(express.json());
 
-// Import routes (they will use server/config/supabase.js)
+// Import routes
 const authRoutes = require('../server/routes/auth');
 const membersRoutes = require('../server/routes/members');
 const rankingsRoutes = require('../server/routes/rankings');
@@ -20,15 +16,7 @@ const scheduleRoutes = require('../server/routes/schedule');
 const tournamentsRoutes = require('../server/routes/tournaments');
 const matchesRoutes = require('../server/routes/matches');
 
-// API Routes - handle both /api/* and direct /* paths
-app.use('/api/auth', authRoutes);
-app.use('/api/members', membersRoutes);
-app.use('/api/rankings', rankingsRoutes);
-app.use('/api/schedule', scheduleRoutes);
-app.use('/api/tournaments', tournamentsRoutes);
-app.use('/api/matches', matchesRoutes);
-
-// Also register without /api prefix for Vercel routing
+// Mount routes (Vercel routes /api/* to this handler, so we don't need /api prefix)
 app.use('/auth', authRoutes);
 app.use('/members', membersRoutes);
 app.use('/rankings', rankingsRoutes);
@@ -36,41 +24,27 @@ app.use('/schedule', scheduleRoutes);
 app.use('/tournaments', tournamentsRoutes);
 app.use('/matches', matchesRoutes);
 
-// Health check
+// Root health check
 app.get('/', (req, res) => {
   res.json({
-    message: '🏓 Tupi Smash Club API',
-    status: 'running',
-    path: req.path,
-    environment: process.env.NODE_ENV || 'development',
-    supabase: {
-      url: process.env.SUPABASE_URL ? 'SET' : 'MISSING',
-      key: process.env.SUPABASE_SERVICE_KEY ? 'SET' : 'MISSING'
+    message: '🏓 Tupi Smash Pickleball Club API',
+    status: 'online',
+    version: '1.0.0',
+    env: {
+      nodeEnv: process.env.NODE_ENV || 'development',
+      supabaseUrl: process.env.SUPABASE_URL ? '✓ configured' : '✗ missing',
+      supabaseKey: process.env.SUPABASE_SERVICE_KEY ? '✓ configured' : '✗ missing'
     }
   });
 });
 
-app.get('/api', (req, res) => {
-  res.json({
-    message: '🏓 Tupi Smash Club API',
-    status: 'running',
-    path: req.path,
-    environment: process.env.NODE_ENV || 'development',
-    supabase: {
-      url: process.env.SUPABASE_URL ? 'SET' : 'MISSING',
-      key: process.env.SUPABASE_SERVICE_KEY ? 'SET' : 'MISSING'
-    }
-  });
-});
-
-app.get('/health', (req, res) => {
-  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
-});
-
-// Error handling
+// Error handler
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(500).json({ error: err.message || 'Internal server error' });
+  console.error('API Error:', err);
+  res.status(500).json({ 
+    error: 'Internal Server Error',
+    message: err.message 
+  });
 });
 
 // Export for Vercel
