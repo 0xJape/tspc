@@ -9,12 +9,12 @@ app.use(cors());
 app.use(express.json());
 
 // Import routes
-const authRoutes = require('../server/routes/auth');
-const membersRoutes = require('../server/routes/members');
-const rankingsRoutes = require('../server/routes/rankings');
-const scheduleRoutes = require('../server/routes/schedule');
-const tournamentsRoutes = require('../server/routes/tournaments');
-const matchesRoutes = require('../server/routes/matches');
+const authRoutes = require('./routes/auth');
+const membersRoutes = require('./routes/members');
+const rankingsRoutes = require('./routes/rankings');
+const scheduleRoutes = require('./routes/schedule');
+const tournamentsRoutes = require('./routes/tournaments');
+const matchesRoutes = require('./routes/matches');
 
 // Mount routes (Vercel routes /api/* to this handler, so we don't need /api prefix)
 app.use('/auth', authRoutes);
