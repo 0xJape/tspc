@@ -11,13 +11,14 @@ const PORT = process.env.PORT || 3001;
 app.use(cors({
   origin: [
     'http://localhost:5173',
-    'http://localhost:3000'
+    'http://localhost:3000',
+    'http://localhost:5174'
   ],
   credentials: true
 }));
 
-// Mount the API app at /api (Vercel does this automatically in production)
-app.use('/api', apiApp);
+// Mount the API app (already has /api prefix in index.js)
+app.use('/', apiApp);
 
 // Root health check
 app.get('/', (req, res) => {

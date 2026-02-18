@@ -16,13 +16,13 @@ const scheduleRoutes = require('./routes/schedule');
 const tournamentsRoutes = require('./routes/tournaments');
 const matchesRoutes = require('./routes/matches');
 
-// Mount routes (Vercel routes /api/* to this handler, so we don't need /api prefix)
-app.use('/auth', authRoutes);
-app.use('/members', membersRoutes);
-app.use('/rankings', rankingsRoutes);
-app.use('/schedule', scheduleRoutes);
-app.use('/tournaments', tournamentsRoutes);
-app.use('/matches', matchesRoutes);
+// Mount routes with /api prefix for standalone deployment
+app.use('/api/auth', authRoutes);
+app.use('/api/members', membersRoutes);
+app.use('/api/rankings', rankingsRoutes);
+app.use('/api/schedule', scheduleRoutes);
+app.use('/api/tournaments', tournamentsRoutes);
+app.use('/api/matches', matchesRoutes);
 
 // Root health check
 app.get('/', (req, res) => {
