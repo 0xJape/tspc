@@ -23,17 +23,17 @@
 
 ### 3. Configure Project Settings
 
-**Framework Preset:** Vite
+**Framework Preset:** Other
 
-**Root Directory:** `client` ⬅️ **CRITICAL - Set this to "client"**
+**Root Directory:** **Leave EMPTY** ⬅️ **CRITICAL - Must be empty!**
 
-**Build Command:** Leave default (auto-detect)
+**Build Command:** Leave empty (will use vercel.json)
 
-**Output Directory:** Leave default (auto-detect)  
+**Output Directory:** Leave empty (will use vercel.json)  
 
-**Install Command:** Leave default (auto-detect)
+**Install Command:** Leave empty (will use vercel.json)
 
-> **Why this works:** Vercel will build the frontend from the `client` folder, but STILL detect and deploy the `/api` folder for serverless functions because it's at the project root level.
+> **Important:** Do NOT set Root Directory. The vercel.json file handles building both frontend and backend from the root.
 
 ### 4. Add Environment Variables
 
@@ -100,9 +100,16 @@ ALTER TABLE tournament_participants DISABLE ROW LEVEL SECURITY;
 4. Verify environment variables in Vercel Settings → Environment Variables
 
 ### Build failing?
-1. Make sure **Root Directory is NOT set** (should be empty or `.`)
-2. Framework should be "Other" not "Vite"
-3. Redeploy after changing settings
+1. Make sure **Root Directory is EMPTY** (not set to anything)
+2. Framework should be "Other"
+3. All build settings should be empty (vercel.json handles them)
+4. Redeploy after changing settings
+
+### API returning 404?
+1. Root Directory must be empty for API to deploy
+2. Check deployment → Functions tab to see if `/api` is listed
+3. If no functions are listed, Root Directory is probably set - clear it
+4. Redeploy fresh
 
 ### API not working?
 1. Check Vercel Functions logs in deployment details
