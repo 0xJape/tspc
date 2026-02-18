@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap');
 @import "tailwindcss";
 
-:root {
+@theme {
   --color-baseline-green: #3b82f6;
   --color-baseline-green-dark: #2563eb;
   --color-baseline-green-light: #dbeafe;
