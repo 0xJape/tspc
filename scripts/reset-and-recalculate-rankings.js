@@ -1,5 +1,10 @@
 require('dotenv').config()
-const supabase = require('./config/supabase')
+const { createClient } = require('@supabase/supabase-js')
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+)
 
 async function resetAndRecalculateRankings() {
   console.log('🔄 Starting rankings reset and recalculation...')
