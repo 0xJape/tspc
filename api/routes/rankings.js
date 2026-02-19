@@ -23,8 +23,94 @@ router.get('/', async (req, res) => {
       return res.json(data)
     }
 
-    // Tournament-specific rankings
-    // Get all matches for this tournament
+    // Tournament-specific rankings using dedicated tournament tables
+    // Map tournament IDs to their specific result tables
+    const tournamentTableMap = {
+      // Actual tournament IDs mapped to their tables
+      'd9af477a-a257-499b-bf34-61015dcc90b6': 'tspc_mens_doubles_results',
+      'bad83357-7ca8-4527-9cfb-885ff0f9abc0': 'tspc_womens_doubles_results'
+    };
+
+    // First, try to get tournament table mapping
+    const { data: tournamentTables, error: tableError } = await supabase
+      .from('tournament_tables')
+      .select('tournament_id, table_name')
+      .eq('tournament_id', tournament)
+
+    let tournamentTableName = null;
+    if (!tableError && tournamentTables && tournamentTables.length > 0) {
+      tournamentTableName = tournamentTables[0].table_name;
+    }
+
+    // If we have a dedicated tournament table, use it
+    if (tournamentTableName) {
+      console.log(`Using tournament table: ${tournamentTableName}`);
+      
+      const { data: tournamentResults, error: resultsError } = await supabase
+        .from(tournamentTableName)
+        .select('*')
+        .order('rank_position', { ascending: true });
+
+      if (resultsError) throw resultsError;
+
+      // Transform the tournament results to match the expected format
+      let rankings = tournamentResults.map(result => ({
+        id: result.member_id,
+        full_name: result.full_name,
+        points: result.points,
+        wins: result.wins,
+        losses: result.losses,
+        games_played: result.games_played,
+        rank_position: result.rank_position,
+        // We need to get gender info by joining with members
+        gender: null, // Will be filled by a separate query if needed
+        email: null,
+        profile_photo: null
+      }));
+
+      // Apply gender filter if specified and get additional member info
+      if (gender && gender !== 'All') {
+        const memberIds = rankings.map(r => r.id);
+        const { data: memberInfo } = await supabase
+          .from('members')
+          .select('id, gender, email, profile_photo')
+          .in('id', memberIds);
+
+        // Merge member info and filter by gender
+        rankings = rankings
+          .map(ranking => {
+            const member = memberInfo?.find(m => m.id === ranking.id);
+            return {
+              ...ranking,
+              gender: member?.gender,
+              email: member?.email,
+              profile_photo: member?.profile_photo
+            };
+          })
+          .filter(ranking => ranking.gender === gender);
+      } else if (rankings.length > 0) {
+        // Get member info for all players (for display purposes)
+        const memberIds = rankings.map(r => r.id);
+        const { data: memberInfo } = await supabase
+          .from('members')
+          .select('id, gender, email, profile_photo')
+          .in('id', memberIds);
+
+        rankings = rankings.map(ranking => {
+          const member = memberInfo?.find(m => m.id === ranking.id);
+          return {
+            ...ranking,
+            gender: member?.gender,
+            email: member?.email,
+            profile_photo: member?.profile_photo
+          };
+        });
+      }
+
+      return res.json(rankings);
+    }
+
+    // Fallback: Check if there are any matches for this tournament
     const { data: matches, error: matchError } = await supabase
       .from('matches')
       .select(`
@@ -38,7 +124,34 @@ router.get('/', async (req, res) => {
 
     if (matchError) throw matchError
 
-    // Calculate tournament points for each player
+    // If no matches exist and no tournament table, get tournament participants with their overall ranking
+    if (!matches || matches.length === 0) {
+      const { data: participants, error: participantsError } = await supabase
+        .from('tournament_participants')
+        .select(`
+          members!tournament_participants_member_id_fkey(
+            id, full_name, email, gender, profile_photo, points, wins, losses
+          )
+        `)
+        .eq('tournament_id', tournament)
+
+      if (participantsError) throw participantsError
+
+      // Extract member data and sort by points
+      let rankings = participants
+        .map(p => p.members)
+        .filter(member => member)
+        .sort((a, b) => b.points - a.points)
+
+      // Apply gender filter if specified
+      if (gender && gender !== 'All') {
+        rankings = rankings.filter(player => player.gender === gender)
+      }
+
+      return res.json(rankings)
+    }
+
+    // Calculate tournament points for each player from matches
     const playerStats = {}
 
     matches.forEach(match => {

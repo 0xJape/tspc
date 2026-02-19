@@ -1,51 +1,35 @@
-// Vercel Serverless Function Handler
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 
 const app = express();
+const PORT = process.env.PORT || 3001;
 
-// CORS - allow all origins
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Import routes
-const authRoutes = require('./routes/auth');
-const membersRoutes = require('./routes/members');
-const rankingsRoutes = require('./routes/rankings');
-const scheduleRoutes = require('./routes/schedule');
-const tournamentsRoutes = require('./routes/tournaments');
-const matchesRoutes = require('./routes/matches');
+// Routes
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/members', require('./routes/members'));
+app.use('/api/tournaments', require('./routes/tournaments'));
+app.use('/api/rankings', require('./routes/rankings'));
+app.use('/api/matches', require('./routes/matches'));
+app.use('/api/schedule', require('./routes/schedule'));
 
-// Mount routes with /api prefix for standalone deployment
-app.use('/api/auth', authRoutes);
-app.use('/api/members', membersRoutes);
-app.use('/api/rankings', rankingsRoutes);
-app.use('/api/schedule', scheduleRoutes);
-app.use('/api/tournaments', tournamentsRoutes);
-app.use('/api/matches', matchesRoutes);
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
 
-// Root health check
+// Root route
 app.get('/', (req, res) => {
-  res.json({
-    message: '🏓 Tupi Smash Pickleball Club API',
-    status: 'online',
-    version: '1.0.0',
-    env: {
-      nodeEnv: process.env.NODE_ENV || 'development',
-      supabaseUrl: process.env.SUPABASE_URL ? '✓ configured' : '✗ missing',
-      supabaseKey: process.env.SUPABASE_SERVICE_KEY ? '✓ configured' : '✗ missing'
-    }
-  });
+  res.json({ message: 'TSPC API Server is running!' });
 });
 
-// Error handler
-app.use((err, req, res, next) => {
-  console.error('API Error:', err);
-  res.status(500).json({ 
-    error: 'Internal Server Error',
-    message: err.message 
-  });
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📊 API endpoints available at http://localhost:${PORT}/api/`);
 });
 
-// Export for Vercel
 module.exports = app;

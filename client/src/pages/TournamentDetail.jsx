@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Calendar, MapPin, Users, User, Trophy, Edit, Plus, ArrowLeft, CheckCircle, XCircle, Clock } from 'lucide-react'
-import { tournamentsAPI, membersAPI, matchesAPI } from '../services/api'
+import { tournamentsAPI, membersAPI, matchesAPI, rankingsAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
 export default function TournamentDetail() {
@@ -12,6 +12,7 @@ export default function TournamentDetail() {
   const [participants, setParticipants] = useState([])
   const [pendingRequests, setPendingRequests] = useState([])
   const [matches, setMatches] = useState([])
+  const [tournamentRankings, setTournamentRankings] = useState([])
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAddMatch, setShowAddMatch] = useState(false)
@@ -63,6 +64,15 @@ export default function TournamentDetail() {
       } catch (error) {
         console.error('Failed to fetch matches:', error)
         setMatches([])
+      }
+
+      // Fetch tournament rankings
+      try {
+        const rankingsRes = await rankingsAPI.getAll({ tournament: id })
+        setTournamentRankings(rankingsRes.data || [])
+      } catch (error) {
+        console.error('Failed to fetch tournament rankings:', error)
+        setTournamentRankings([])
       }
 
       // Fetch pending requests if admin
@@ -955,94 +965,49 @@ export default function TournamentDetail() {
             Tournament Leaderboard
           </h2>
           
-          {(() => {
-            // Calculate tournament-specific points from matches
-            const playerPoints = {}
-            
-            matches.forEach(match => {
-              if (match.status === 'Finished' && match.winner_id) {
-                // Determine winner and loser teams
-                const team1Sets = [
-                  match.set1_team1_score > match.set1_team2_score ? 1 : 0,
-                  match.set2_team1_score > match.set2_team2_score ? 1 : 0,
-                  match.set3_team1_score && match.set3_team2_score && match.set3_team1_score > match.set3_team2_score ? 1 : 0
-                ].reduce((a, b) => a + b, 0)
-                
-                const team1Won = team1Sets > (match.set3_team1_score && match.set3_team2_score ? 1 : 1)
-                
-                // Add points
-                const addPoints = (playerId, playerName, playerPhoto, points) => {
-                  if (!playerId || !playerName) return
-                  if (!playerPoints[playerId]) {
-                    playerPoints[playerId] = { name: playerName, photo: playerPhoto, points: 0, wins: 0, losses: 0 }
-                  }
-                  playerPoints[playerId].points += points
-                  if (points === 6) playerPoints[playerId].wins++
-                  else playerPoints[playerId].losses++
-                }
-                
-                if (team1Won) {
-                  addPoints(match.player1_id, match.player1?.full_name, match.player1?.profile_photo, 6)
-                  if (match.team1_partner_id) addPoints(match.team1_partner_id, match.team1_partner?.full_name, match.team1_partner?.profile_photo, 6)
-                  addPoints(match.player2_id, match.player2?.full_name, match.player2?.profile_photo, 3)
-                  if (match.team2_partner_id) addPoints(match.team2_partner_id, match.team2_partner?.full_name, match.team2_partner?.profile_photo, 3)
-                } else {
-                  addPoints(match.player2_id, match.player2?.full_name, match.player2?.profile_photo, 6)
-                  if (match.team2_partner_id) addPoints(match.team2_partner_id, match.team2_partner?.full_name, match.team2_partner?.profile_photo, 6)
-                  addPoints(match.player1_id, match.player1?.full_name, match.player1?.profile_photo, 3)
-                  if (match.team1_partner_id) addPoints(match.team1_partner_id, match.team1_partner?.full_name, match.team1_partner?.profile_photo, 3)
-                }
-              }
-            })
-            
-            const sortedPlayers = Object.entries(playerPoints)
-              .map(([id, data]) => ({ id, ...data }))
-              .sort((a, b) => b.points - a.points)
-            
-            return sortedPlayers.length === 0 ? (
-              <p className="text-gray-400 text-center py-8">No matches completed yet</p>
-            ) : (
-              <div className="space-y-2">
-                {sortedPlayers.map((player, index) => (
-                  <div
-                    key={player.id}
-                    className={`flex items-center justify-between p-4 rounded-lg transition-all ${
-                      index === 0 ? 'bg-yellow-50 border-2 border-yellow-400 shadow-md' :
-                      index === 1 ? 'bg-gray-100 border-2 border-gray-400' :
-                      index === 2 ? 'bg-orange-50 border-2 border-orange-400' :
-                      'bg-gray-50 border border-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={`flex items-center justify-center w-12 h-12 rounded-full font-bold text-lg ${
-                        index === 0 ? 'bg-yellow-400 text-white shadow-lg' :
-                        index === 1 ? 'bg-gray-400 text-white shadow' :
-                        index === 2 ? 'bg-orange-400 text-white shadow' :
-                        'bg-gray-300 text-gray-700'
-                      }`}>
-                        {index + 1}
-                      </div>
-                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {player.photo ? (
-                          <img src={player.photo} alt={player.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <User className="w-6 h-6 text-gray-400" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-bold text-gray-900 text-lg">{player.name}</p>
-                        <p className="text-sm text-gray-600">{player.wins}W - {player.losses}L</p>
-                      </div>
+          {tournamentRankings.length === 0 ? (
+            <p className="text-gray-400 text-center py-8">No tournament rankings available yet</p>
+          ) : (
+            <div className="space-y-2">
+              {tournamentRankings.map((player, index) => (
+                <div
+                  key={player.id}
+                  className={`flex items-center justify-between p-4 rounded-lg transition-all ${
+                    index === 0 ? 'bg-yellow-50 border-2 border-yellow-400 shadow-md' :
+                    index === 1 ? 'bg-gray-100 border-2 border-gray-400' :
+                    index === 2 ? 'bg-orange-50 border-2 border-orange-400' :
+                    'bg-gray-50 border border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`flex items-center justify-center w-12 h-12 rounded-full font-bold text-lg ${
+                      index === 0 ? 'bg-yellow-400 text-white shadow-lg' :
+                      index === 1 ? 'bg-gray-400 text-white shadow' :
+                      index === 2 ? 'bg-orange-400 text-white shadow' :
+                      'bg-gray-300 text-gray-700'
+                    }`}>
+                      {player.rank_position || index + 1}
                     </div>
-                    <div className="text-right">
-                      <p className="text-3xl font-bold text-baseline-green">{player.points}</p>
-                      <p className="text-xs text-gray-500 font-medium">points</p>
+                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {player.profile_photo ? (
+                        <img src={player.profile_photo} alt={player.full_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-6 h-6 text-gray-400" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900 text-lg">{player.full_name}</p>
+                      <p className="text-sm text-gray-600">{player.wins || 0}W - {player.losses || 0}L</p>
                     </div>
                   </div>
-                ))}
-              </div>
-            )
-          })()}
+                  <div className="text-right">
+                    <p className="text-3xl font-bold text-baseline-green">{player.points || 0}</p>
+                    <p className="text-xs text-gray-500 font-medium">points</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
