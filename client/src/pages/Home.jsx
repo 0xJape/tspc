@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Users, User, Trophy, Calendar, Award, ArrowRight, ChevronRight } from 'lucide-react'
-import { membersAPI, tournamentsAPI, scheduleAPI, matchesAPI } from '../services/api'
+import { membersAPI, tournamentsAPI, scheduleAPI, matchesAPI, rankingsAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
 // Demo data for when API is not connected
@@ -28,16 +28,18 @@ export default function Home() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [membersRes, tournamentsRes, matchesRes] = await Promise.all([
+        const [membersRes, tournamentsRes, matchesRes, rankingsRes] = await Promise.all([
           membersAPI.getAll(),
           tournamentsAPI.getAll(),
           matchesAPI.getAll(),
+          rankingsAPI.getAll(),
         ])
         
         const members = membersRes.data || []
         const tournaments = tournamentsRes.data || []
         const matches = matchesRes.data || []
-        const topPlayer = members[0]?.full_name || 'N/A'
+        const rankings = rankingsRes.data || []
+        const topPlayer = rankings[0]?.full_name || members[0]?.full_name || 'N/A'
         const upcoming = tournaments.filter(t => t.status === 'Upcoming').length
 
         setStats({
@@ -47,9 +49,9 @@ export default function Home() {
           tournaments: tournaments.length,
         })
 
-        // Get top 3 players sorted by points
-        const top3 = members
-          .sort((a, b) => (b.points || 0) - (a.points || 0))
+        // Get top 3 players from aggregated tournament rankings
+        const top3 = rankings
+          .sort((a, b) => (b.total_points || 0) - (a.total_points || 0))
           .slice(0, 3)
         setTop3Players(top3)
 
@@ -179,7 +181,7 @@ export default function Home() {
               </div>
               <div className="bg-gradient-to-b from-gray-200 to-gray-300 rounded-t-xl sm:rounded-t-2xl px-3 py-3 sm:px-6 sm:py-5 md:px-8 md:py-6 w-24 sm:w-32 md:w-40 text-center shadow-lg">
                 <h3 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm truncate">{top3Players[1]?.full_name}</h3>
-                <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-700">{top3Players[1]?.points || 0}</p>
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-700">{top3Players[1]?.total_points || 0}</p>
                 <p className="text-xs text-gray-600">Points</p>
               </div>
               <div className="h-20 sm:h-28 md:h-32 bg-gradient-to-b from-gray-300 to-gray-400 w-24 sm:w-32 md:w-40 rounded-b-lg"></div>
@@ -203,7 +205,7 @@ export default function Home() {
               </div>
               <div className="bg-gradient-to-b from-yellow-300 to-yellow-400 rounded-t-xl sm:rounded-t-2xl px-4 py-3 sm:px-6 sm:py-5 md:px-8 md:py-6 w-28 sm:w-36 md:w-48 text-center shadow-xl">
                 <h3 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm md:text-base truncate">{top3Players[0]?.full_name}</h3>
-                <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">{top3Players[0]?.points || 0}</p>
+                <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">{top3Players[0]?.total_points || 0}</p>
                 <p className="text-xs text-gray-700">Points</p>
               </div>
               <div className="h-28 sm:h-40 md:h-48 bg-gradient-to-b from-yellow-400 to-yellow-500 w-28 sm:w-36 md:w-48 rounded-b-lg"></div>
@@ -227,7 +229,7 @@ export default function Home() {
               </div>
               <div className="bg-gradient-to-b from-orange-300 to-orange-400 rounded-t-xl sm:rounded-t-2xl px-3 py-3 sm:px-6 sm:py-5 md:px-8 md:py-6 w-24 sm:w-32 md:w-40 text-center shadow-lg">
                 <h3 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm truncate">{top3Players[2]?.full_name}</h3>
-                <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-700">{top3Players[2]?.points || 0}</p>
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-700">{top3Players[2]?.total_points || 0}</p>
                 <p className="text-xs text-gray-600">Points</p>
               </div>
               <div className="h-16 sm:h-20 md:h-24 bg-gradient-to-b from-orange-400 to-orange-500 w-24 sm:w-32 md:w-40 rounded-b-lg"></div>
