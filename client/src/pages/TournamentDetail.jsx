@@ -699,7 +699,7 @@ export default function TournamentDetail() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => { setShowAddMatch(false); setEditingMatch(null); }}>
           <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-              <h3 className="text-xl font-semibold text-gray-900">{editingMatch ? 'Edit Match' : 'Record New Match'}</h3>
+              <h3 className="text-xl font-semibold text-gray-900">{editingMatch ? 'Edit Match' : 'Record Match'}</h3>
               <button
                 type="button"
                 onClick={() => { setShowAddMatch(false); setEditingMatch(null); }}
@@ -733,8 +733,11 @@ export default function TournamentDetail() {
               </div>
 
               {/* Team 1 */}
-              <div className="bg-white rounded-lg p-3 border border-gray-200">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">Team 1</h4>
+              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border-2 border-green-200">
+                <h4 className="text-sm font-bold text-green-800 mb-3 flex items-center gap-2">
+                  <span className="bg-green-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
+                  Team 1
+                </h4>
                 <div className="space-y-2">
                   <select
                     value={matchForm.player1_id}
@@ -756,7 +759,7 @@ export default function TournamentDetail() {
                     <select
                       value={matchForm.team1_partner_id}
                       onChange={(e) => setMatchForm({ ...matchForm, team1_partner_id: e.target.value })}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm ${
+                      className={`w-full px-3 py-2 border border-green-300 rounded-lg text-sm bg-white ${
                         editingMatch ? 'bg-gray-100 cursor-not-allowed' : ''
                       }`}
                       required
@@ -776,9 +779,17 @@ export default function TournamentDetail() {
                 </div>
               </div>
 
+              {/* VS Divider */}
+              <div className="flex items-center justify-center">
+                <div className="bg-gray-200 px-4 py-2 rounded-full text-sm font-bold text-gray-600">VS</div>
+              </div>
+
               {/* Team 2 */}
-              <div className="bg-white rounded-lg p-3 border border-gray-200">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">Team 2</h4>
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border-2 border-blue-200">
+                <h4 className="text-sm font-bold text-blue-800 mb-3 flex items-center gap-2">
+                  <span className="bg-blue-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
+                  Team 2
+                </h4>
                 <div className="space-y-2">
                   <select
                     value={matchForm.player2_id}
@@ -813,7 +824,7 @@ export default function TournamentDetail() {
                     <select
                       value={matchForm.team2_partner_id}
                       onChange={(e) => setMatchForm({ ...matchForm, team2_partner_id: e.target.value })}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm ${
+                      className={`w-full px-3 py-2 border border-blue-300 rounded-lg text-sm bg-white ${
                         editingMatch ? 'bg-gray-100 cursor-not-allowed' : ''
                       }`}
                       required
@@ -997,11 +1008,11 @@ export default function TournamentDetail() {
                     </div>
                     <div>
                       <p className="font-bold text-gray-900 text-lg">{player.full_name}</p>
-                      <p className="text-sm text-gray-600">{player.wins || 0}W - {player.losses || 0}L</p>
+                      <p className="text-sm text-gray-600">{player.total_wins ?? player.wins ?? 0}W - {player.total_losses ?? player.losses ?? 0}L</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-3xl font-bold text-baseline-green">{player.points || 0}</p>
+                    <p className="text-3xl font-bold text-baseline-green">{player.total_points ?? player.points ?? 0}</p>
                     <p className="text-xs text-gray-500 font-medium">points</p>
                   </div>
                 </div>

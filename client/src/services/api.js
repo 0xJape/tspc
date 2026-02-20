@@ -71,4 +71,24 @@ export const authAPI = {
   verify: (email) => api.get(`/auth/verify?email=${encodeURIComponent(email)}`),
 }
 
+// Generic API request helper
+export const apiRequest = async (endpoint, method = 'GET', body = null) => {
+  try {
+    const config = {
+      method,
+      url: endpoint.startsWith('/') ? endpoint : `/${endpoint}`,
+    }
+    
+    if (body) {
+      config.data = body
+    }
+    
+    const response = await api(config)
+    return response.data
+  } catch (error) {
+    console.error('API Request Error:', error)
+    throw error
+  }
+}
+
 export default api

@@ -2,6 +2,115 @@ const express = require('express')
 const router = express.Router()
 const supabase = require('../config/supabase')
 
+// Helper function to update tournament result tables when matches are recorded
+async function updateTournamentResults(tournamentId, match) {
+  try {
+    console.log(`🏆 Updating tournament results for match:`, match.id);
+
+    // Get tournament details to determine the correct result table
+    const { data: tournament, error: tournamentError } = await supabase
+      .from('tournaments')
+      .select('id, name, category')
+      .eq('id', tournamentId)
+      .single();
+
+    if (tournamentError) throw tournamentError;
+
+    // Determine which tournament result table to update
+    let tableName = null;
+    if (tournament.category === 'Singles' && tournament.name.includes('Men')) {
+      tableName = 'tspc_mens_singles_results';
+    } else if (tournament.category === 'Singles' && tournament.name.includes('Women')) {
+      tableName = 'tspc_womens_singles_results';
+    } else if (tournament.category === 'Doubles' && tournament.name.includes('Men')) {
+      tableName = 'tspc_mens_doubles_results';
+    } else if (tournament.category === 'Doubles' && tournament.name.includes('Women')) {
+      tableName = 'tspc_womens_doubles_results';
+    } else if (tournament.category === 'Mixed Doubles' || tournament.name.includes('Mixed')) {
+      tableName = 'tspc_mixed_doubles_results';
+    }
+
+    if (!tableName) {
+      console.log(`⚠️  Could not determine result table for tournament: ${tournament.name}`);
+      return;
+    }
+
+    console.log(`📊 Updating table: ${tableName}`);
+
+    // Point system: Winner gets 6 points, loser gets 3 points
+    const winnerPoints = 6;
+    const loserPoints = 3;
+
+    // Get member details for both participants
+    const memberIds = [match.player1_id, match.player2_id];
+    const { data: members, error: membersError } = await supabase
+      .from('members')
+      .select('id, full_name')
+      .in('id', memberIds);
+
+    if (membersError) throw membersError;
+
+    // Update results for both participants
+    for (const memberId of memberIds) {
+      const member = members.find(m => m.id === memberId);
+      if (!member) continue;
+
+      const isWinner = match.winner_id === memberId;
+      const points = isWinner ? winnerPoints : loserPoints;
+      const wins = isWinner ? 1 : 0;
+      const losses = isWinner ? 0 : 1;
+
+      // Check if member already has a record in this tournament result table
+      const { data: existing, error: existingError } = await supabase
+        .from(tableName)
+        .select('*')
+        .eq('member_id', memberId)
+        .single();
+
+      if (existingError && existingError.code !== 'PGRST116') {
+        throw existingError;
+      }
+
+      if (existing) {
+        // Update existing record
+        const { error: updateError } = await supabase
+          .from(tableName)
+          .update({
+            points: existing.points + points,
+            wins: existing.wins + wins,
+            losses: existing.losses + losses,
+            games_played: existing.games_played + 1
+          })
+          .eq('member_id', memberId);
+
+        if (updateError) throw updateError;
+        console.log(`✅ Updated ${member.full_name}: +${points} points, +${wins} wins, +${losses} losses`);
+      } else {
+        // Insert new record - rank_position will be calculated but we set it to 999 initially
+        const { error: insertError } = await supabase
+          .from(tableName)
+          .insert({
+            member_id: memberId,
+            full_name: member.full_name,
+            points: points,
+            wins: wins,
+            losses: losses,
+            games_played: 1,
+            rank_position: 999  // Temporary rank, will be recalculated when rankings are queried
+          });
+
+        if (insertError) throw insertError;
+        console.log(`🆕 Created new record for ${member.full_name}: ${points} points, ${wins} wins, ${losses} losses`);
+      }
+    }
+
+    console.log(`🎯 Tournament results updated successfully for ${tournament.name}`);
+  } catch (error) {
+    console.error('❌ Error updating tournament results:', error.message);
+    // Don't throw error to prevent match recording from failing
+  }
+}
+
 // Helper function to calculate winner based on sets
 function calculateWinner(set1_team1, set1_team2, set2_team1, set2_team2, set3_team1, set3_team2, player1_id, player2_id) {
   let team1Sets = 0
@@ -96,14 +205,15 @@ router.post('/', async (req, res) => {
 
     if (matchError) throw matchError
 
-    // Note: Stats (wins/losses/points) are NOT updated for standalone matches
-    // Only tournament matches count toward rankings
-    // This ensures rankings reflect tournament performance only
+    // Update tournament result tables if this is a tournament match
+    if (tournament_id) {
+      await updateTournamentResults(tournament_id, match[0])
+    }
 
     res.json({ 
       success: true, 
       match: match[0],
-      message: 'Match recorded successfully' 
+      message: 'Match recorded successfully and tournament results updated' 
     })
   } catch (error) {
     console.error('Error creating match:', error)

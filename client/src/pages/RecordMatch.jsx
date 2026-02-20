@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Save } from 'lucide-react'
-import { membersAPI, tournamentsAPI } from '../services/api'
+import { membersAPI, tournamentsAPI, matchesAPI } from '../services/api'
 
 export default function RecordMatch() {
   const navigate = useNavigate()
@@ -12,8 +12,10 @@ export default function RecordMatch() {
     tournament_id: '',
     player1_id: '',
     player2_id: '',
-    player1_score: '',
-    player2_score: '',
+    set1_team1_score: '',
+    set1_team2_score: '',
+    set2_team1_score: '',
+    set2_team2_score: '',
     match_date: new Date().toISOString().split('T')[0],
   })
   const [loading, setLoading] = useState(false)
@@ -52,32 +54,54 @@ export default function RecordMatch() {
       return
     }
 
+    // Validate all scores are filled
+    if (!formData.set1_team1_score || !formData.set1_team2_score || 
+        !formData.set2_team1_score || !formData.set2_team2_score) {
+      alert('Please fill in all score fields')
+      return
+    }
+
     setLoading(true)
 
     try {
-      // For now, we'll send to a matches endpoint (to be created in backend)
-      const response = await fetch('/api/matches', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      })
+      // Convert scores to integers
+      const matchData = {
+        ...formData,
+        set1_team1_score: parseInt(formData.set1_team1_score),
+        set1_team2_score: parseInt(formData.set1_team2_score),
+        set2_team1_score: parseInt(formData.set2_team1_score),
+        set2_team2_score: parseInt(formData.set2_team2_score),
+      }
 
-      if (!response.ok) throw new Error('Failed to record match')
+      console.log('📝 Recording match...', matchData)
+      const response = await matchesAPI.create(matchData)
+      console.log('✅ Match recorded successfully!', response.data)
       
-      alert('Match recorded successfully!')
-      navigate('/')
+      alert('Match recorded successfully! Check the Rankings page to see updated scores.')
+      
+      // Navigate to rankings page with state to trigger refresh
+      navigate('/rankings', { state: { refresh: Date.now() } })
     } catch (error) {
-      alert('Failed to record match. Backend endpoint may not be ready yet.')
+      console.error('❌ Match recording error:', error)
+      alert(`Failed to record match: ${error.response?.data?.error || error.message}`)
     } finally {
       setLoading(false)
     }
   }
 
-  const winner = formData.player1_score && formData.player2_score
-    ? parseInt(formData.player1_score) > parseInt(formData.player2_score)
-      ? formData.player1_id
-      : formData.player2_id
-    : null
+  const calculateWinner = () => {
+    const set1Winner = parseInt(formData.set1_team1_score || 0) > parseInt(formData.set1_team2_score || 0) ? 1 : (parseInt(formData.set1_team2_score || 0) > parseInt(formData.set1_team1_score || 0) ? 2 : 0)
+    const set2Winner = parseInt(formData.set2_team1_score || 0) > parseInt(formData.set2_team2_score || 0) ? 1 : (parseInt(formData.set2_team2_score || 0) > parseInt(formData.set2_team1_score || 0) ? 2 : 0)
+    
+    const team1Sets = (set1Winner === 1 ? 1 : 0) + (set2Winner === 1 ? 1 : 0)
+    const team2Sets = (set1Winner === 2 ? 1 : 0) + (set2Winner === 2 ? 1 : 0)
+    
+    if (team1Sets > team2Sets) return formData.player1_id
+    if (team2Sets > team1Sets) return formData.player2_id
+    return null
+  }
+  
+  const winner = calculateWinner()
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -147,19 +171,37 @@ export default function RecordMatch() {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Score *
-              </label>
-              <input
-                type="number"
-                value={formData.player1_score}
-                onChange={(e) => setFormData({ ...formData, player1_score: e.target.value })}
-                placeholder="0"
-                min="0"
-                className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-baseline-green/20 focus:border-baseline-green transition"
-                required
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Set 1 *
+                </label>
+                <input
+                  type="number"
+                  value={formData.set1_team1_score}
+                  onChange={(e) => setFormData({ ...formData, set1_team1_score: e.target.value })}
+                  placeholder="0"
+                  min="0"
+                  max="21"
+                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-baseline-green/20 focus:border-baseline-green transition"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Set 2 *
+                </label>
+                <input
+                  type="number"
+                  value={formData.set2_team1_score}
+                  onChange={(e) => setFormData({ ...formData, set2_team1_score: e.target.value })}
+                  placeholder="0"
+                  min="0"
+                  max="21"
+                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-baseline-green/20 focus:border-baseline-green transition"
+                  required
+                />
+              </div>
             </div>
             {winner === formData.player1_id && (
               <div className="text-sm font-medium text-baseline-green">
@@ -190,19 +232,37 @@ export default function RecordMatch() {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Score *
-              </label>
-              <input
-                type="number"
-                value={formData.player2_score}
-                onChange={(e) => setFormData({ ...formData, player2_score: e.target.value })}
-                placeholder="0"
-                min="0"
-                className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-baseline-green/20 focus:border-baseline-green transition"
-                required
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Set 1 *
+                </label>
+                <input
+                  type="number"
+                  value={formData.set1_team2_score}
+                  onChange={(e) => setFormData({ ...formData, set1_team2_score: e.target.value })}
+                  placeholder="0"
+                  min="0"
+                  max="21"
+                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-baseline-green/20 focus:border-baseline-green transition"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Set 2 *
+                </label>
+                <input
+                  type="number"
+                  value={formData.set2_team2_score}
+                  onChange={(e) => setFormData({ ...formData, set2_team2_score: e.target.value })}
+                  placeholder="0"
+                  min="0"
+                  max="21"
+                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-baseline-green/20 focus:border-baseline-green transition"
+                  required
+                />
+              </div>
             </div>
             {winner === formData.player2_id && (
               <div className="text-sm font-medium text-baseline-green">

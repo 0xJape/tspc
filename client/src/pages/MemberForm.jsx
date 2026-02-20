@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Save } from 'lucide-react'
-import { membersAPI } from '../services/api'
+import { ArrowLeft, Save, Trophy } from 'lucide-react'
+import { membersAPI, apiRequest } from '../services/api'
 
 export default function MemberForm() {
   const { id } = useParams()
@@ -15,17 +15,28 @@ export default function MemberForm() {
     gender: '',
     skill_level: 'Beginner',
     profile_photo: '',
-    wins: 0,
-    losses: 0,
-    points: 0,
   })
   const [loading, setLoading] = useState(false)
+  const [tournaments, setTournaments] = useState([])
+  const [memberStats, setMemberStats] = useState([])
+  const [statsLoading, setStatsLoading] = useState(false)
+  const [savingStats, setSavingStats] = useState(false)
+  const [statsMessage, setStatsMessage] = useState(null)
 
   useEffect(() => {
-    if (isEdit) {
+    if (isEdit && id) {
       fetchMember()
+      loadTournaments()
     }
-  }, [id])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, isEdit])
+
+  useEffect(() => {
+    if (isEdit && id && tournaments.length > 0) {
+      loadMemberStats()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEdit, id, tournaments.length])
 
   const fetchMember = async () => {
     try {
@@ -33,6 +44,115 @@ export default function MemberForm() {
       setFormData(res.data)
     } catch (error) {
       alert('Failed to load member')
+    }
+  }
+
+  const loadTournaments = async () => {
+    try {
+      const data = await apiRequest('tournaments/')
+      setTournaments(data)
+    } catch (error) {
+      console.error('Error loading tournaments:', error)
+    }
+  }
+
+  const loadMemberStats = async () => {
+    setStatsLoading(true)
+    try {
+      const statsPromises = tournaments.map(async (tournament) => {
+        try {
+          const rankings = await apiRequest(`rankings/?tournament=${tournament.id}`)
+          const memberRanking = rankings.find(r => r.id === id)
+          
+          const wins = memberRanking?.total_wins || memberRanking?.wins || 0
+          const losses = memberRanking?.total_losses || memberRanking?.losses || 0
+          
+          return {
+            tournament,
+            stats: memberRanking ? {
+              total_points: memberRanking.total_points || memberRanking.points || 0,
+              total_games: wins + losses
+            } : {
+              total_points: 0,
+              total_games: 0
+            }
+          }
+        } catch (error) {
+          return {
+            tournament,
+            stats: {
+              total_points: 0,
+              total_games: 0
+            }
+          }
+        }
+      })
+
+      const stats = await Promise.all(statsPromises)
+      setMemberStats(stats)
+    } catch (error) {
+      console.error('Error loading member stats:', error)
+    } finally {
+      setStatsLoading(false)
+    }
+  }
+
+  const handleStatChange = (tournamentId, field, value) => {
+    setMemberStats(prevStats =>
+      prevStats.map(stat =>
+        stat.tournament.id === tournamentId
+          ? {
+              ...stat,
+              stats: {
+                ...stat.stats,
+                [field]: parseInt(value) || 0
+              }
+            }
+          : stat
+      )
+    )
+  }
+
+  const calculateWinsLosses = (points, totalGames) => {
+    // Formula based on point system: winners get 6 points, losers get 3 points
+    // wins = (points - 3 * totalGames) / 3
+    // losses = totalGames - wins
+    const wins = Math.max(0, Math.round((points - 3 * totalGames) / 3))
+    const losses = Math.max(0, totalGames - wins)
+    return { wins, losses }
+  }
+
+  const handleSaveTournamentStats = async (tournamentId) => {
+    const stat = memberStats.find(s => s.tournament.id === tournamentId)
+    if (!stat) return
+
+    setSavingStats(true)
+    setStatsMessage(null)
+
+    try {
+      const { wins, losses } = calculateWinsLosses(
+        stat.stats.total_points,
+        stat.stats.total_games
+      )
+      
+      await apiRequest(
+        `rankings/member/${id}/tournament/${tournamentId}`,
+        'PUT',
+        {
+          points: stat.stats.total_points,
+          wins: wins,
+          losses: losses
+        }
+      )
+
+      setStatsMessage({ type: 'success', text: `Successfully updated stats for ${stat.tournament.name}` })
+      
+      // Reload stats to get updated data
+      loadMemberStats()
+    } catch (error) {
+      setStatsMessage({ type: 'error', text: `Error updating stats: ${error.message}` })
+    } finally {
+      setSavingStats(false)
     }
   }
 
@@ -146,45 +266,6 @@ export default function MemberForm() {
             </select>
           </div>
 
-          {/* Stats (only for edit) */}
-          {isEdit && (
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Wins
-                </label>
-                <input
-                  type="number"
-                  value={formData.wins}
-                  onChange={(e) => setFormData({ ...formData, wins: parseInt(e.target.value) })}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-baseline-green/20 focus:border-baseline-green transition"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Losses
-                </label>
-                <input
-                  type="number"
-                  value={formData.losses}
-                  onChange={(e) => setFormData({ ...formData, losses: parseInt(e.target.value) })}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-baseline-green/20 focus:border-baseline-green transition"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Points
-                </label>
-                <input
-                  type="number"
-                  value={formData.points}
-                  onChange={(e) => setFormData({ ...formData, points: parseInt(e.target.value) })}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-baseline-green/20 focus:border-baseline-green transition"
-                />
-              </div>
-            </div>
-          )}
-
           {/* Profile Photo URL */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -219,6 +300,98 @@ export default function MemberForm() {
           </div>
         </form>
       </div>
+
+      {/* Tournament Stats Section (Only for Edit) */}
+      {isEdit && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sm:p-8 mt-6">
+          <div className="flex items-center gap-2 mb-6">
+            <Trophy className="w-6 h-6 text-blue-600" />
+            <h2 className="text-2xl font-bold text-gray-900">Tournament Statistics</h2>
+          </div>
+
+          {statsMessage && (
+            <div
+              className={`mb-4 p-4 rounded-lg ${
+                statsMessage.type === 'success'
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-red-100 text-red-800'
+              }`}
+            >
+              {statsMessage.text}
+            </div>
+          )}
+
+          {statsLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Loading tournament stats...</p>
+            </div>
+          ) : memberStats.length > 0 ? (
+            <div className="space-y-4">
+              {memberStats.map(({ tournament, stats }) => (
+                <div key={tournament.id} className="border border-gray-200 rounded-lg p-4">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-bold text-gray-800">{tournament.name}</h3>
+                    <p className="text-sm text-gray-600">
+                      {tournament.category} • {tournament.skill_level}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Points
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={stats.total_points}
+                        onChange={(e) => handleStatChange(tournament.id, 'total_points', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Total Games Played
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={stats.total_games}
+                        onChange={(e) => handleStatChange(tournament.id, 'total_games', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+
+                  {stats.total_points > 0 && stats.total_games > 0 && (
+                    <div className="mb-4 p-3 bg-blue-50 text-blue-800 text-sm rounded-lg">
+                      <div className="font-medium mb-1">Calculated Stats:</div>
+                      <div className="flex gap-4">
+                        <span>Wins: {calculateWinsLosses(stats.total_points, stats.total_games).wins}</span>
+                        <span>Losses: {calculateWinsLosses(stats.total_points, stats.total_games).losses}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => handleSaveTournamentStats(tournament.id)}
+                    disabled={savingStats}
+                    className="w-full md:w-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {savingStats ? 'Saving...' : 'Save Tournament Stats'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-600">
+              No tournament data available
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

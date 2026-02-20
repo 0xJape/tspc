@@ -288,6 +288,7 @@ router.post('/:id/matches', async (req, res) => {
 
     // Award points if match is finished with a winner
     if (winner_id && status === 'Finished') {
+      console.log(`🏆 Match finished! winner_id=${winner_id}, tournamentId=${req.params.id}`)
       try {
         // Determine winning and losing teams
         const winningTeam = winner_id === player1_id 
@@ -334,6 +335,126 @@ router.post('/:id/matches', async (req, res) => {
               })
               .eq('id', memberId)
           }
+        }
+
+        // Update tournament leaderboard table (tspc_*_results)
+        try {
+          const tournamentId = req.params.id
+
+          // Use same ID-based logic as rankings.js GET endpoint
+          // First check tournament_tables registry, then fallback to hardcoded map
+          let tableName = null
+
+          const { data: registryEntry } = await supabase
+            .from('tournament_tables')
+            .select('table_name')
+            .eq('tournament_id', tournamentId)
+            .maybeSingle()
+
+          if (registryEntry?.table_name) {
+            tableName = registryEntry.table_name
+          } else {
+            // Same hardcoded map as rankings.js
+            const tournamentTableMap = {
+              'd9af477a-a257-499b-bf34-61015dcc90b6': 'tspc_mens_doubles_results',
+              'bad83357-7ca8-4527-9cfb-885ff0f9abc0': 'tspc_womens_doubles_results',
+              'd4fc8133-1c30-4133-b6ed-ba4545e1f08e': 'tspc_mens_singles_results',
+              'debf25dc-b1bb-4ecf-a194-9f1ddf063bb0': 'tspc_womens_singles_results',
+              'aa176926-38a3-4f1e-9a51-d269195a4220': 'tspc_mixed_doubles_results'
+            }
+            tableName = tournamentTableMap[tournamentId] || null
+
+            // If still not found, try name/category as last resort
+            if (!tableName) {
+              const { data: tournament } = await supabase
+                .from('tournaments')
+                .select('name, category')
+                .eq('id', tournamentId)
+                .single()
+
+              if (tournament) {
+                const name = tournament.name || ''
+                const cat = tournament.category || ''
+                if (cat === 'Singles' && name.toLowerCase().includes('men') && !name.toLowerCase().includes('women')) {
+                  tableName = 'tspc_mens_singles_results'
+                } else if (cat === 'Singles' && name.toLowerCase().includes('women')) {
+                  tableName = 'tspc_womens_singles_results'
+                } else if (cat === 'Doubles' && name.toLowerCase().includes('men') && !name.toLowerCase().includes('women') && !name.toLowerCase().includes('mixed')) {
+                  tableName = 'tspc_mens_doubles_results'
+                } else if (cat === 'Doubles' && name.toLowerCase().includes('women')) {
+                  tableName = 'tspc_womens_doubles_results'
+                } else if (cat === 'Mixed Doubles' || name.toLowerCase().includes('mixed')) {
+                  tableName = 'tspc_mixed_doubles_results'
+                }
+              }
+            }
+          }
+
+          console.log(`📋 Tournament leaderboard table: ${tableName || 'NONE FOUND - skipping'}`)
+
+          if (tableName) {
+            const updateLeaderboard = async (memberId, pts, isWin) => {
+              const { data: memberInfo } = await supabase
+                .from('members')
+                .select('full_name')
+                .eq('id', memberId)
+                .single()
+
+              const { data: existing, error: fetchErr } = await supabase
+                .from(tableName)
+                .select('*')
+                .eq('member_id', memberId)
+                .maybeSingle()
+
+              if (fetchErr) {
+                console.error(`Error fetching existing record from ${tableName}:`, fetchErr.message)
+                return
+              }
+
+              if (existing) {
+                const { error: updateErr } = await supabase
+                  .from(tableName)
+                  .update({
+                    points: (existing.points || 0) + pts,
+                    wins: (existing.wins || 0) + (isWin ? 1 : 0),
+                    losses: (existing.losses || 0) + (isWin ? 0 : 1),
+                    games_played: (existing.games_played || 0) + 1
+                  })
+                  .eq('member_id', memberId)
+                if (updateErr) {
+                  console.error(`Error updating ${tableName} for ${memberId}:`, updateErr.message)
+                } else {
+                  console.log(`✅ Updated ${tableName}: member=${memberInfo?.full_name}, +${pts}pts, isWin=${isWin}`)
+                }
+              } else {
+                const { error: insertErr } = await supabase
+                  .from(tableName)
+                  .insert([{
+                    member_id: memberId,
+                    full_name: memberInfo?.full_name || '',
+                    points: pts,
+                    wins: isWin ? 1 : 0,
+                    losses: isWin ? 0 : 1,
+                    games_played: 1,
+                    rank_position: 999
+                  }])
+                if (insertErr) {
+                  console.error(`Error inserting into ${tableName} for ${memberId}:`, insertErr.message)
+                } else {
+                  console.log(`✅ Inserted into ${tableName}: member=${memberInfo?.full_name}, ${pts}pts, isWin=${isWin}`)
+                }
+              }
+            }
+
+            for (const memberId of winningTeam) {
+              await updateLeaderboard(memberId, 6, true)
+            }
+            for (const memberId of losingTeam) {
+              await updateLeaderboard(memberId, 3, false)
+            }
+          }
+        } catch (leaderboardError) {
+          console.error('Error updating tournament leaderboard:', leaderboardError)
         }
       } catch (statsError) {
         console.error('Error updating player stats:', statsError)

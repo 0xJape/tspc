@@ -1,28 +1,23 @@
 import { useState, useEffect } from 'react'
-import { Filter } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
+import { Filter, RefreshCw } from 'lucide-react'
 import RankingTable from '../components/RankingTable'
 import { rankingsAPI, tournamentsAPI } from '../services/api'
+import { useAuth } from '../context/AuthContext'
 
 // Demo data
-const demoPlayers = [
-  { id: '1', full_name: 'Anna Clarice Patrimonio', gender: 'Female', skill_level: 'Advanced', wins: 15, losses: 3, points: 1500 },
-  { id: '2', full_name: 'Arianne Gajasan', gender: 'Female', skill_level: 'Advanced', wins: 12, losses: 5, points: 1200 },
-  { id: '3', full_name: 'Sophia P. Anh', gender: 'Female', skill_level: 'Advanced', wins: 10, losses: 6, points: 1000 },
-  { id: '4', full_name: 'John Doe', gender: 'Male', skill_level: 'Intermediate', wins: 8, losses: 8, points: 800 },
-  { id: '5', full_name: 'Mary Santos', gender: 'Female', skill_level: 'Intermediate', wins: 7, losses: 9, points: 700 },
-  { id: '6', full_name: 'Jane Smith', gender: 'Female', skill_level: 'Beginner', wins: 5, losses: 10, points: 500 },
-  { id: '7', full_name: 'Carlos Rivera', gender: 'Male', skill_level: 'Intermediate', wins: 6, losses: 7, points: 650 },
-  { id: '8', full_name: 'Lisa Chen', gender: 'Female', skill_level: 'Beginner', wins: 3, losses: 12, points: 350 },
-]
 
 const genderFilters = ['All', 'Male', 'Female']
 
 export default function Rankings() {
+  const { isAdmin } = useAuth()
+  const location = useLocation()
   const [players, setPlayers] = useState([])
   const [tournaments, setTournaments] = useState([])
   const [tournamentFilter, setTournamentFilter] = useState('All')
   const [genderFilter, setGenderFilter] = useState('All')
   const [loading, setLoading] = useState(true)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   // Fetch tournaments
   useEffect(() => {
@@ -39,9 +34,18 @@ export default function Rankings() {
     fetchTournaments()
   }, [])
 
-  // Fetch rankings when filters change
+  // Detect navigation from match recording
+  useEffect(() => {
+    if (location.state?.refresh) {
+      console.log('🔄 Match recorded! Triggering refresh...', location.state.refresh)
+      setRefreshTrigger(location.state.refresh)
+    }
+  }, [location.state])
+
+  // Fetch rankings when filters change or when navigating to this page
   useEffect(() => {
     const fetchRankings = async () => {
+      console.log('📊 Fetching rankings...', { tournamentFilter, genderFilter, refreshTrigger })
       setLoading(true)
       try {
         const params = {}
@@ -53,27 +57,41 @@ export default function Rankings() {
         }
 
         const res = await rankingsAPI.getAll(params)
+        console.log('✅ Rankings fetched:', res.data?.length, 'players')
         if (res.data && res.data.length > 0) {
           setPlayers(res.data)
         } else {
           setPlayers([])
         }
       } catch (error) {
-        console.error('Failed to fetch rankings:', error)
+        console.error('❌ Failed to fetch rankings:', error)
         setPlayers([])
       } finally {
         setLoading(false)
       }
     }
     fetchRankings()
-  }, [tournamentFilter, genderFilter])
+  }, [tournamentFilter, genderFilter, location.key, refreshTrigger])
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Rankings</h1>
-        <p className="text-gray-500">Tournament performance leaderboard</p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Rankings</h1>
+          <p className="text-gray-500">Tournament performance leaderboard</p>
+        </div>
+        <div className="flex items-center gap-2">
+
+          <button
+            onClick={() => setRefreshTrigger(Date.now())}
+            className="flex items-center gap-2 px-4 py-2 bg-baseline-green text-white rounded-lg hover:bg-baseline-green/90 transition-colors"
+            disabled={loading}
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -149,7 +167,12 @@ export default function Rankings() {
           ))}
         </div>
       ) : players.length > 0 ? (
-        <RankingTable players={players} />
+        <RankingTable 
+          players={players} 
+          isAdmin={isAdmin}
+          tournamentId={tournamentFilter !== 'All' ? tournamentFilter : null}
+          onUpdate={() => setRefreshTrigger(Date.now())}
+        />
       ) : (
         <div className="text-center py-16 bg-white rounded-xl border border-gray-100">
           <p className="text-gray-400">No players found for this filter.</p>
