@@ -11,6 +11,12 @@ export default async function handler(req, res) {
     return res.status(200).send(generateErrorPage('Invalid match ID', 'No match ID was provided in the URL.'))
   }
 
+  // Detect if this is a bot/crawler (for social media preview)
+  const userAgent = req.headers['user-agent'] || ''
+  const isBot = /bot|crawler|spider|crawling|facebook|twitter|whatsapp|telegram|slack|discord|pinterest|linkedin/i.test(userAgent)
+  console.log('User agent:', userAgent)
+  console.log('Is bot:', isBot)
+
   try {
     // Fetch match data from the API
     const apiUrl = process.env.API_URL || 'https://tspc-iota.vercel.app/api'
@@ -69,7 +75,7 @@ export default async function handler(req, res) {
       }
     }
 
-    const html = generateMatchPage(match, tournamentName, id, req.headers.host)
+    const html = generateMatchPage(match, tournamentName, id, req.headers.host, isBot)
     
     return res.status(200).send(html)
   } catch (error) {
@@ -121,7 +127,7 @@ function generateErrorPage(title, message) {
 }
 
 // Helper function to generate match page
-function generateMatchPage(match, tournamentName, matchId, host) {
+function generateMatchPage(match, tournamentName, matchId, host, isBot = false) {
   // Build team names
   let team1Name = match.player1?.full_name || 'Team 1'
   let team2Name = match.player2?.full_name || 'Team 2'
@@ -191,8 +197,8 @@ function generateMatchPage(match, tournamentName, matchId, host) {
     <meta name="twitter:title" content="${title}" />
     <meta name="twitter:description" content="${description}" />
     <meta name="twitter:image" content="${imageUrl}" />
-    
-    <!-- Redirect to the actual app -->
+    ${!isBot ? `
+    <!-- Redirect to the actual app (only for real users, not bots) -->
     <meta http-equiv="refresh" content="0; url=${matchUrl}" />
     <script>
         // Immediate redirect for browsers
@@ -200,6 +206,7 @@ function generateMatchPage(match, tournamentName, matchId, host) {
             window.location.replace('${matchUrl}');
         }, 100);
     </script>
+    ` : '<!-- Bot detected: Skipping redirect for proper preview card generation -->'}
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
@@ -261,10 +268,16 @@ function generateMatchPage(match, tournamentName, matchId, host) {
         <div class="score">${scoreDisplay}</div>
         ${tournamentName ? `<p class="tournament">${tournamentName}</p>` : ''}
         ${match.match_date ? `<p class="date">${new Date(match.match_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>` : ''}
-    </div>
+    ${!isBot ? `
     <p class="loading">Loading match details...</p>
     <p style="font-size: 13px; color: #9ca3af; margin-top: 16px;">
         If you are not redirected, <a href="${matchUrl}">click here</a>
+    </p>
+    ` : `
+    <p style="font-size: 13px; color: #9ca3af; margin-top: 16px;">
+        <a href="${matchUrl}" style="display: inline-block; background: #2563eb; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">View Full Match Details</a>
+    </p>
+    `}If you are not redirected, <a href="${matchUrl}">click here</a>
     </p>
 </body>
 </html>
