@@ -3,23 +3,13 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "framework": "vite",
-  "functions": {
-    "api/**/*.js": {
-      "memory": 1024,
-      "maxDuration": 10
-    },
-    "api/**/*.jsx": {
-      "memory": 1024,
-      "maxDuration": 10
-    }
-  },
   "rewrites": [
     {
       "source": "/share/:id",
       "destination": "/api/share/[id]"
     },
     {
-      "source": "/((?!api/.*).*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ],
