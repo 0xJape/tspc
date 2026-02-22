@@ -113,13 +113,15 @@ function MatchDetail() {
     // Use the preview URL for social media sharing (with meta tags)
     const baseUrl = window.location.origin
     const shareUrl = `${baseUrl}/share/${id}`
-    const title = `${getTeamName(1)} vs ${getTeamName(2)}`
-    const text = `Check out this match: ${getScoreDisplay()}`
+    const tournamentName = tournament?.name || 'Pickleball Match'
+    const teams = `${getTeamName(1)} vs ${getTeamName(2)}`
+    const score = getScoreDisplay()
+    const text = `${tournamentName}\n${teams}\n${score}`
 
     // Try native share API first
     if (navigator.share) {
       try {
-        await navigator.share({ title, text, url: shareUrl })
+        await navigator.share({ title: teams, text, url: shareUrl })
         setShareSuccess(true)
         setTimeout(() => setShareSuccess(false), 3000)
       } catch (err) {
