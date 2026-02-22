@@ -12,20 +12,7 @@
   "rewrites": [
     {
       "source": "/share/:id",
-      "destination": "/api/share/:id"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/share/([^/]+)",
-      "dest": "/api/share/[id].js?id=$1"
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "destination": "/api/share/[id]"
     }
   ],
   "headers": [
