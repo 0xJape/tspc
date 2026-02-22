@@ -262,21 +262,11 @@ function generateMatchPage(match, tournamentName, matchId, host) {
         ${tournamentName ? `<p class="tournament">${tournamentName}</p>` : ''}
         ${match.match_date ? `<p class="date">${new Date(match.match_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>` : ''}
     </div>
-    <pturn res.status(200).send(html)
-  } catch (error) {
-    console.error('Error in generateMatchPage:', error)
-    console.error('Error details:', error.message)
-    console.error('Stack:', error.stack)
-    
-    // Return error page on unexpected errors
-    return res.status(200).send(generateErrorPage('Match Error', 'An unexpected error occurred while loading this match.')/style>
-</head>
-<body>
-    <h1>⚠️ Match Not Found</h1>
-    <p>Sorry, we couldn't load this match. It may have been removed or the ID is invalid.</p>
-    <p><a href="${homeUrl}">← Return to Home</a></p>
+    <p class="loading">Loading match details...</p>
+    <p style="font-size: 13px; color: #9ca3af; margin-top: 16px;">
+        If you are not redirected, <a href="${matchUrl}">click here</a>
+    </p>
 </body>
 </html>
-    `)
-  }
+`
 }
