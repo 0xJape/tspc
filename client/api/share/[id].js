@@ -153,7 +153,7 @@ function generateMatchPage(match, tournamentName, matchId, host, isBot = false) 
   // Use the request's host for URLs
   const protocol = (host && host.includes('localhost')) ? 'http' : 'https'
   const matchUrl = `${protocol}://${host || 'tspc-v1.vercel.app'}/matches/${matchId}`
-  const imageUrl = `${protocol}://${host || 'tspc-v1.vercel.app'}/api/og/${matchId}`
+  const imageUrl = `${protocol}://${host || 'tspc-v1.vercel.app'}/tspc.png`
   
   // Format match date for OGP
   const matchDate = match.match_date ? new Date(match.match_date).toISOString() : new Date().toISOString()
