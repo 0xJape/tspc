@@ -13,6 +13,10 @@
     {
       "source": "/share/:id",
       "destination": "/api/share/[id]"
+    },
+    {
+      "source": "/((?!api/.*).*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [
