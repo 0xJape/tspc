@@ -110,25 +110,27 @@ function MatchDetail() {
   }
 
   const handleShare = async () => {
-    const url = window.location.href
+    // Use the preview URL for social media sharing (with meta tags)
+    const baseUrl = window.location.origin
+    const shareUrl = `${baseUrl}/api/match-preview/${id}`
     const title = `${getTeamName(1)} vs ${getTeamName(2)}`
     const text = `Check out this match: ${getScoreDisplay()}`
 
     // Try native share API first
     if (navigator.share) {
       try {
-        await navigator.share({ title, text, url })
+        await navigator.share({ title, text, url: shareUrl })
         setShareSuccess(true)
         setTimeout(() => setShareSuccess(false), 3000)
       } catch (err) {
         if (err.name !== 'AbortError') {
           console.error('Error sharing:', err)
-          copyToClipboard(url)
+          copyToClipboard(shareUrl)
         }
       }
     } else {
       // Fallback to clipboard
-      copyToClipboard(url)
+      copyToClipboard(shareUrl)
     }
   }
 
