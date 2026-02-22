@@ -85,14 +85,22 @@ export default async function handler(req, res) {
 function generateErrorPage(title, message) {
   return `
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" prefix="og: https://ogp.me/ns#">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${title} - Tupi Smash Pickleball Club</title>
+    
+    <!-- Required Open Graph Meta Tags -->
     <meta property="og:title" content="Tupi Smash Pickleball Club" />
-    <meta property="og:description" content="Pickleball matches and tournaments" />
     <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://tspc-v1.vercel.app/tspc.svg" />
+    <meta property="og:url" content="https://tspc-v1.vercel.app" />
+    
+    <!-- Recommended Open Graph Meta Tags -->
+    <meta property="og:description" content="Pickleball matches and tournaments" />
+    <meta property="og:site_name" content="Tupi Smash Pickleball Club" />
+    <meta property="og:locale" content="en_US" />
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -141,24 +149,42 @@ function generateMatchPage(match, tournamentName, matchId, host) {
   const matchUrl = `${protocol}://${host || 'tspc.vercel.app'}/matches/${matchId}`
   const imageUrl = `${protocol}://${host || 'tspc.vercel.app'}/tspc.svg`
   
+  // Format match date for OGP
+  const matchDate = match.match_date ? new Date(match.match_date).toISOString() : new Date().toISOString()
+  
   return `
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" prefix="og: https://ogp.me/ns#">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${title}</title>
     
-    <!-- Open Graph Meta Tags for Facebook/Messenger -->
+    <!-- Required Open Graph Meta Tags -->
     <meta property="og:title" content="${title}" />
-    <meta property="og:description" content="${description}" />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="${matchUrl}" />
-    <meta property="og:site_name" content="Tupi Smash Pickleball Club" />
+    <meta property="og:type" content="article" />
     <meta property="og:image" content="${imageUrl}" />
+    <meta property="og:url" content="${matchUrl}" />
+    
+    <!-- Recommended Open Graph Meta Tags -->
+    <meta property="og:description" content="${description}" />
+    <meta property="og:site_name" content="Tupi Smash Pickleball Club" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:determiner" content="" />
+    
+    <!-- Structured Image Properties -->
+    <meta property="og:image:secure_url" content="${imageUrl}" />
+    <meta property="og:image:type" content="image/svg+xml" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Tupi Smash Pickleball Club Logo" />
+    
+    <!-- Article Structured Properties -->
+    <meta property="article:published_time" content="${matchDate}" />
+    <meta property="article:section" content="Sports" />
+    <meta property="article:tag" content="Pickleball" />
+    <meta property="article:tag" content="${match.match_type}" />
+    ${tournamentName ? `<meta property="article:tag" content="${tournamentName}" />` : ''}
     
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image" />
@@ -236,49 +262,14 @@ function generateMatchPage(match, tournamentName, matchId, host) {
         ${tournamentName ? `<p class="tournament">${tournamentName}</p>` : ''}
         ${match.match_date ? `<p class="date">${new Date(match.match_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>` : ''}
     </div>
-    <p class="loading">Loading match details...</p>
-    <p style="font-size: 13px; color: #9ca3af; margin-top: 16px;">
-        If you are not redirected, <a href="${matchUrl}">click here</a>
-    </p>
-</body>
-</html>
-`
-    
-    res.setHeader('Content-Type', 'text/html; charset=utf-8')
-    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200')
-    return res.status(200).send(html)
+    <pturn res.status(200).send(html)
   } catch (error) {
-    console.error('Error generating match preview:', error)
+    console.error('Error in generateMatchPage:', error)
     console.error('Error details:', error.message)
     console.error('Stack:', error.stack)
     
-    // Provide a more user-friendly error page
-    const host = req.headers.host || 'tspc.vercel.app'
-    const protocol = host.includes('localhost') ? 'http' : 'https'
-    coturn res.status(2l = `${protocol}://${host}`
-    
-    res.status(500).send(`
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Match Not Found - Tupi Smash Pickleball Club</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            max-width: 500px;
-            margin: 100px auto;
-            padding: 20px;
-            text-align: center;
-        }
-        h1 { color: #ef4444; }
-        a {
-            color: #2563eb;
-            text-decoration: none;
-            font-weight: 500;
-        }
-    </style>
+    // Return error page on unexpected errors
+    return res.status(200).send(generateErrorPage('Match Error', 'An unexpected error occurred while loading this match.')/style>
 </head>
 <body>
     <h1>⚠️ Match Not Found</h1>
