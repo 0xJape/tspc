@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "node dev.js",
-    "start": "node dev.js"
+    "dev": "node index.js",
+    "start": "node index.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.95.3",

@@ -16,6 +16,7 @@ import Profile from './pages/Profile'
 import MemberForm from './pages/MemberForm'
 import TournamentForm from './pages/TournamentForm'
 import RecordMatch from './pages/RecordMatch'
+import MatchDetail from './pages/MatchDetail'
 
 function App() {
   const [showLoading, setShowLoading] = useState(true)
@@ -53,6 +54,7 @@ function App() {
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/tournaments" element={<Tournaments />} />
             <Route path="/tournaments/:id" element={<TournamentDetail />} />
+            <Route path="/matches/:id" element={<MatchDetail />} />
             <Route path="/login" element={<Login />} />
             <Route path="/profile" element={<Profile />} />
             

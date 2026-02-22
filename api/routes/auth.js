@@ -75,6 +75,11 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' })
     }
 
+    // Guard against members with no password set
+    if (!user.password_hash) {
+      return res.status(401).json({ error: 'No password set for this account. Please contact an admin.' })
+    }
+
     // Verify password
     const validPassword = await bcrypt.compare(password, user.password_hash)
     if (!validPassword) {

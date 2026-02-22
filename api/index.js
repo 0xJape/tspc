@@ -16,6 +16,7 @@ app.use('/api/tournaments', require('./routes/tournaments'));
 app.use('/api/rankings', require('./routes/rankings'));
 app.use('/api/matches', require('./routes/matches'));
 app.use('/api/schedule', require('./routes/schedule'));
+app.use('/api/share', require('./routes/share'));
 
 // Health check
 app.get('/api/health', (req, res) => {

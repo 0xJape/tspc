@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Calendar, MapPin, Users, User, Trophy, Edit, Plus, ArrowLeft, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { Calendar, MapPin, Users, User, Trophy, Edit, Plus, ArrowLeft, CheckCircle, XCircle, Clock, Share2 } from 'lucide-react'
 import { tournamentsAPI, membersAPI, matchesAPI, rankingsAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
@@ -650,20 +650,29 @@ export default function TournamentDetail() {
                         )}
                       </div>
 
-                      {/* Round and Edit Button */}
+                      {/* Round and Action Buttons */}
                       <div className="flex justify-between items-center mt-2">
                         {match.round && (
                           <span className="text-xs text-gray-500 font-medium">{match.round}</span>
                         )}
-                        {isAdmin && (
-                          <button
-                            onClick={() => handleEditMatch(match)}
-                            className="ml-auto p-1.5 text-gray-400 hover:text-baseline-green transition-colors"
-                            title="Edit match"
+                        <div className="flex gap-2 ml-auto">
+                          <Link
+                            to={`/matches/${match.id}`}
+                            className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
+                            title="View & share match"
                           >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                        )}
+                            <Share2 className="w-4 h-4" />
+                          </Link>
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleEditMatch(match)}
+                              className="p-1.5 text-gray-400 hover:text-baseline-green transition-colors"
+                              title="Edit match"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       {/* Status Badge */}
