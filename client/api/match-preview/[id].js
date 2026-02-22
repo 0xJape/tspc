@@ -1,21 +1,34 @@
 // Vercel Serverless Function to handle social media previews
 export default async function handler(req, res) {
+  // Always set headers first
+  res.setHeader('Content-Type', 'text/html; charset=utf-8')
+  res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+  
   const { id } = req.query
   
   if (!id) {
-    return res.status(400).json({ error: 'Match ID is required' })
+    console.error('No match ID provided')
+    return res.status(200).send(generateErrorPage('Invalid match ID', 'No match ID was provided in the URL.'))
   }
 
   try {
     // Fetch match data from the API
     const apiUrl = process.env.VITE_API_URL || 'https://tspc-api.vercel.app'
-    const response = await fetch(`${apiUrl}/api/matches/${id}`)
+    console.log('Fetching match from:', `${apiUrl}/api/matches/${id}`)
+    
+    const response = await fetch(`${apiUrl}/api/matches/${id}`, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
     
     if (!response.ok) {
-      throw new Error('Failed to fetch match data')
+      console.error('API response not OK:', response.status, response.statusText)
+      return res.status(200).send(generateErrorPage('Match not found', `Could not load match data (Status: ${response.status})`))
     }
     
     const match = await response.json()
+    console.log('Match fetched successfully:', match.id)
     
     // Build team names
     let team1Name = match.player1?.full_name || 'Team 1'
@@ -40,26 +53,95 @@ export default async function handler(req, res) {
     let tournamentName = ''
     if (match.tournament_id) {
       try {
-        const tournamentResponse = await fetch(`${apiUrl}/api/tournaments/${match.tournament_id}`)
+        const tournamentResponse = await fetch(`${apiUrl}/api/tournaments/${match.tournament_id}`, {
+          headers: {
+            'Accept': 'application/json'
+          }
+        })
         if (tournamentResponse.ok) {
           const tournament = await tournamentResponse.json()
           tournamentName = tournament.name || ''
+          console.log('Tournament fetched:', tournamentName)
         }
       } catch (err) {
         console.error('Error fetching tournament:', err)
+        // Continue without tournament name
       }
     }
 
-    const title = `${team1Name} vs ${team2Name}`
-    const description = `${scoreDisplay}${tournamentName ? ' - ' + tournamentName : ' - Tupi Smash Pickleball Club'}`
+    const html = generateMatchPage(match, tournamentName, id, req.headers.host)
     
-    // Use the request's host for URLs
-    const host = req.headers.host || 'tspc.vercel.app'
-    const protocol = host.includes('localhost') ? 'http' : 'https'
-    const matchUrl = `${protocol}://${host}/matches/${id}`
-    const imageUrl = `${protocol}://${host}/tspc.svg`
+    return res.status(200).send(html)
+  } catch (error) {
+    console.error('Error generating match preview:', error)
+    console.error('Error details:', error.message)
     
-    const html = `
+    // Always return 200 with error page for better social media compatibility
+    return res.status(200).send(generateErrorPage('Match Unavailable', 'This match could not be loaded. Please try again later.'))
+  }
+}
+
+// Helper function to generate error page
+function generateErrorPage(title, message) {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title} - Tupi Smash Pickleball Club</title>
+    <meta property="og:title" content="Tupi Smash Pickleball Club" />
+    <meta property="og:description" content="Pickleball matches and tournaments" />
+    <meta property="og:type" content="website" />
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 500px;
+            margin: 100px auto;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <h1>⚠️ ${title}</h1>
+    <p>${message}</p>
+</body>
+</html>
+  `
+}
+
+// Helper function to generate match page
+function generateMatchPage(match, tournamentName, matchId, host) {
+  // Build team names
+  let team1Name = match.player1?.full_name || 'Team 1'
+  let team2Name = match.player2?.full_name || 'Team 2'
+  
+  if (match.match_type === 'Doubles') {
+    if (match.team1_partner) team1Name += ` / ${match.team1_partner.full_name}`
+    if (match.team2_partner) team2Name += ` / ${match.team2_partner.full_name}`
+  }
+
+  // Build score display
+  const scores = [
+    `${match.set1_team1_score}-${match.set1_team2_score}`,
+    `${match.set2_team1_score}-${match.set2_team2_score}`
+  ]
+  if (match.set3_team1_score !== null && match.set3_team2_score !== null) {
+    scores.push(`${match.set3_team1_score}-${match.set3_team2_score}`)
+  }
+  const scoreDisplay = scores.join(', ')
+
+  const title = `${team1Name} vs ${team2Name}`
+  const description = `${scoreDisplay}${tournamentName ? ' - ' + tournamentName : ' - Tupi Smash Pickleball Club'}`
+  
+  // Use the request's host for URLs
+  const protocol = (host && host.includes('localhost')) ? 'http' : 'https'
+  const matchUrl = `${protocol}://${host || 'tspc.vercel.app'}/matches/${matchId}`
+  const imageUrl = `${protocol}://${host || 'tspc.vercel.app'}/tspc.svg`
+  
+  return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -164,14 +246,16 @@ export default async function handler(req, res) {
     
     res.setHeader('Content-Type', 'text/html; charset=utf-8')
     res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200')
-    res.status(200).send(html)
+    return res.status(200).send(html)
   } catch (error) {
     console.error('Error generating match preview:', error)
+    console.error('Error details:', error.message)
+    console.error('Stack:', error.stack)
     
     // Provide a more user-friendly error page
     const host = req.headers.host || 'tspc.vercel.app'
     const protocol = host.includes('localhost') ? 'http' : 'https'
-    const homeUrl = `${protocol}://${host}`
+    coturn res.status(2l = `${protocol}://${host}`
     
     res.status(500).send(`
 <!DOCTYPE html>
