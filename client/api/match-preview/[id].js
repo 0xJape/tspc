@@ -13,10 +13,10 @@ export default async function handler(req, res) {
 
   try {
     // Fetch match data from the API
-    const apiUrl = process.env.VITE_API_URL || 'https://tspc-api.vercel.app'
-    console.log('Fetching match from:', `${apiUrl}/api/matches/${id}`)
+    const apiUrl = process.env.API_URL || 'https://tspc-iota.vercel.app/api'
+    console.log('Fetching match from:', `${apiUrl}/matches/${id}`)
     
-    const response = await fetch(`${apiUrl}/api/matches/${id}`, {
+    const response = await fetch(`${apiUrl}/matches/${id}`, {
       headers: {
         'Accept': 'application/json'
       }
@@ -53,7 +53,7 @@ export default async function handler(req, res) {
     let tournamentName = ''
     if (match.tournament_id) {
       try {
-        const tournamentResponse = await fetch(`${apiUrl}/api/tournaments/${match.tournament_id}`, {
+        const tournamentResponse = await fetch(`${apiUrl}/tournaments/${match.tournament_id}`, {
           headers: {
             'Accept': 'application/json'
           }
