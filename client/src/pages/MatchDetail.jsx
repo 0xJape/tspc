@@ -112,7 +112,7 @@ function MatchDetail() {
   const handleShare = async () => {
     // Use the preview URL for social media sharing (with meta tags)
     const baseUrl = window.location.origin
-    const shareUrl = `${baseUrl}/api/match-preview/${id}`
+    const shareUrl = `${baseUrl}/share/${id}`
     const title = `${getTeamName(1)} vs ${getTeamName(2)}`
     const text = `Check out this match: ${getScoreDisplay()}`
 
