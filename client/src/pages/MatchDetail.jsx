@@ -143,6 +143,16 @@ function MatchDetail() {
     })
   }
 
+  const handleBack = () => {
+    // If match has a tournament, navigate to tournament page
+    // Otherwise, go back to previous page
+    if (match?.tournament_id) {
+      navigate(`/tournaments/${match.tournament_id}`)
+    } else {
+      navigate(-1)
+    }
+  }
+
   const isWinningTeam = (teamNumber) => {
     if (!match || !match.winner_id) return false
     if (teamNumber === 1) {
@@ -167,7 +177,7 @@ function MatchDetail() {
           {error || 'Match not found'}
         </div>
         <button
-          onClick={() => navigate(-1)}
+          onClick={handleBack}
           className="mt-4 text-blue-600 hover:text-blue-800"
         >
           ← Go Back
@@ -181,7 +191,7 @@ function MatchDetail() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <button
-          onClick={() => navigate(-1)}
+          onClick={handleBack}
           className="flex items-center text-gray-600 hover:text-gray-800"
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
