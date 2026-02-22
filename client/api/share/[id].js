@@ -163,28 +163,24 @@ function generateMatchPage(match, tournamentName, matchId, host, isBot = false) 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title}</title>
     
-    <!-- Required Open Graph Meta Tags -->
+    <!-- Open Graph Image - MUST be first -->
+    <meta property="og:image" content="${imageUrl}" />
+    <meta property="og:image:url" content="${imageUrl}" />
+    <meta property="og:image:secure_url" content="${imageUrl}" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    
+    <!-- Other Required Open Graph Meta Tags -->
     <meta property="og:title" content="${title}" />
     <meta property="og:type" content="article" />
-    <meta property="og:image" content="${imageUrl}" />
     <meta property="og:url" content="${matchUrl}" />
-    
-    <!-- Recommended Open Graph Meta Tags -->
     <meta property="og:description" content="${description}" />
     <meta property="og:site_name" content="Tupi Smash Pickleball Club" />
     <meta property="og:locale" content="en_US" />
-    <meta property="og:determiner" content="" />
     
-    <!-- Structured Image Properties -->
-    <meta property="og:image:secure_url" content="${imageUrl}" />
-    <meta property="og:image:type" content="image/png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="${title} - ${scoreDisplay}" />
-    
-    <!-- Article Structured Properties -->
+    <title>${title}</title>
     <meta property="article:published_time" content="${matchDate}" />
     <meta property="article:section" content="Sports" />
     <meta property="article:tag" content="Pickleball" />
